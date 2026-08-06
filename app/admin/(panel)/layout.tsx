@@ -7,6 +7,7 @@
 // El login está fuera de este grupo, en app/admin/login, precisamente para que
 // no pase por aquí y no redirija a sí mismo en bucle.
 
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getOperator } from "@/lib/db/session";
@@ -36,6 +37,11 @@ export default async function PanelLayout({ children }: { children: React.ReactN
         }}
       >
         <strong style={{ fontSize: "1rem" }}>{admin.panelTitle}</strong>
+        <nav style={{ display: "flex", gap: "1rem", fontSize: "0.875rem" }}>
+          <Link href="/admin/negocios">{admin.businesses}</Link>
+          <Link href="/admin/respuestas">{admin.responses}</Link>
+          <Link href="/admin/comentarios">{admin.comments}</Link>
+        </nav>
         <span style={{ fontSize: "0.8125rem", color: "#6b7280" }}>
           {admin.signedInAs} {operator.email}
         </span>
