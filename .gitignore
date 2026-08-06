@@ -12,8 +12,15 @@ next-env.d.ts
 /build
 
 # entorno
-.env
-.env*.local
+#
+# Se ignora cualquier .env, incluidos los que genera el CLI de Vercel
+# (.env.local con VERCEL_OIDC_TOKEN). Ahí viven las claves reales.
+.env*
+
+# ...salvo la plantilla, que SÍ se versiona a propósito: documenta qué
+# variables hacen falta y no contiene ningún valor. La negación es explícita
+# para que nadie la borre pensando que se coló.
+!.env.example
 
 # despliegue
 .vercel
