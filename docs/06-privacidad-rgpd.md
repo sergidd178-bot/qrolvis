@@ -61,19 +61,33 @@ y qué ocurre al finalizar el contrato.
 | Fecha y hora | Sí | Necesario para los informes |
 | **Dirección IP** | **No** | Se usa en memoria para limitar abuso y no se persiste |
 | **User agent** | **No** | No aporta valor y añade capacidad de rastreo |
-| Token de dispositivo | Sí, 7 días | UUID aleatorio, no deriva de ningún dato del usuario |
+| Token de dispositivo | Sí, 7 días en base de datos (la cookie caduca a las 6 horas) | UUID aleatorio, no deriva de ningún dato del usuario |
 | Nombre, email, teléfono | Nunca | No se piden |
 | Geolocalización | Nunca | No se pide |
 
 ### Sobre el token de dispositivo
 
-Es un UUID generado aleatoriamente en el navegador y guardado en `localStorage`.
-No se calcula a partir de la IP, del user agent ni de ninguna característica del
-dispositivo. No permite identificar a nadie ni correlacionar entre negocios
-distintos.
+Es un UUID aleatorio guardado en una **cookie `httpOnly`**. No se calcula a
+partir de la IP, del user agent ni de ninguna característica del dispositivo. No
+permite identificar a nadie ni correlacionar entre negocios distintos.
 
-Se usa exclusivamente para evitar envíos repetidos desde el mismo navegador en un
-plazo de 6 horas. Se pone a `null` a los 7 días.
+Al ser `httpOnly`, el JavaScript de la página no puede leerlo. Lo genera el
+servidor en la acción que crea la respuesta, no el navegador: desde que el
+formulario funciona sin JavaScript no hay `localStorage` disponible en esa ruta.
+
+Se usa exclusivamente para evitar envíos repetidos desde el mismo navegador.
+
+### Dos plazos distintos, que se confunden con facilidad
+
+| Dónde vive | Plazo | Qué ocurre al vencer |
+|---|---|---|
+| Cookie en el navegador | **6 horas** | Caduca sola. Es la ventana antiduplicados |
+| Columna `responses.device_token` | **7 días** | Se pone a `null` por la tarea de retención |
+
+No son el mismo plazo y no deben citarse como uno solo. La cookie caduca a las 6
+horas; ese mismo número queda junto a la respuesta en base de datos un máximo de
+7 días y después se borra. El aviso de privacidad lo explica con esas mismas
+palabras, y los dos textos deben mantenerse alineados.
 
 **Base legal para no pedir consentimiento de cookies:** es almacenamiento
 estrictamente necesario para prestar el servicio solicitado por el usuario

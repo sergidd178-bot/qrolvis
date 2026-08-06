@@ -30,6 +30,9 @@ no lo decidas por tu cuenta. Pregunta.**
 | D16 | Máximo 4 preguntas de dimensión | Cada pregunta extra reduce la finalización | Bajo |
 | D17 | Sin captcha | Destruye la conversión y el riesgo real es mínimo | Bajo |
 | D18 | La recomendación mensual la escribe el operador | Es el mayor valor percibido y no hay volumen para automatizarla bien | Bajo |
+| D19 | Nombre comercial y dominio: Qrolvis | Necesario para las URL de los QR, que no pueden cambiar | No revertible, obliga a reimprimir todo el material físico |
+| D20 | Escritura de respuestas solo desde servidor, no desde el rol anónimo | Las policies de insert tenían `with check (true)`, que no comprueba nada. El riesgo real cerrado estaba en `answers`: con la clave publishable, que es pública por diseño, cualquiera podía colgar valoraciones o comentarios de texto de un `response_id` ajeno y suplantar lo que otra persona había escrito. En `responses` la policy nunca fue explotable, pero por un efecto secundario no buscado del trigger `set_response_business_id()`, no por diseño: al no ser `security definer` y no poder leer `businesses`, abortaba antes de evaluar la RLS. Esa barrera no debe darse por supuesta en tablas futuras. Detalle en `docs/01`, "Seguridad de datos" | Bajo |
+| D21 | El umbral de rendimiento de `/f/[code]` es FCP < 1 s en 4G lento, no un presupuesto de bundle | El tope de 30 KB era un proxy inalcanzable: App Router carga siempre ~141 KB gzip de runtime, y con cero `"use client"` el código propio aporta 0 KB. Cumplirlo exigiría servir la ruta fuera de App Router con HTML a mano. El objetivo real, velocidad percibida en 4G débil, sí se cumple: 0,76 s de FCP medidos con Lighthouse. Se descarta LCP como umbral porque su elemento es un `<h1>` ya presente en el HTML inicial y su retraso es hidratación de React, no espera de contenido; con Server Actions nativas el formulario es utilizable desde el FCP. Evidencia en `docs/evidencias/rendimiento-f-code.md` | Bajo |
 
 ---
 
@@ -40,7 +43,6 @@ Requieren decisión antes de la fase indicada.
 | # | Cuestión | Decidir antes de | Notas |
 |---|---|---|---|
 | A1 | Precio definitivo de alta y cuota mensual | Fase 5 | Rango propuesto: 90–150 € y 25–45 € |
-| A2 | Nombre comercial y dominio | Fase 1 | Necesario para las URL de los QR, que no pueden cambiar después |
 | A3 | Número de puntos de captación incluidos en la cuota base | Fase 5 | Propuesta: 3 |
 | A4 | Formato físico de los expositores y proveedor de impresión | Fase 5 | Afecta al coste de alta |
 | A5 | Umbral de alerta configurable por cliente | Tras el piloto | Ahora fijo en ≤ 2 |

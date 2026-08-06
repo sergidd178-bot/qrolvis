@@ -140,8 +140,15 @@ Cárgalos solo cuando la tarea lo requiera.
 
 ## Estado del proyecto
 
-Fase actual: **no iniciado**. Ver `docs/07-plan-implementacion.md`.
+**Fase 1 (cimientos y formulario público), en curso. Fase 0 omitida
+deliberadamente, riesgo asumido por Sergi.** Ver `docs/07-plan-implementacion.md`.
 
-Antes de escribir código de producción debe completarse la Fase 0 (validación
-manual con un negocio real). Si la Fase 0 no está marcada como superada en
-`docs/07`, pregunta antes de empezar a construir.
+La Fase 0 era la validación manual con un negocio real. No se ejecutó. No hace
+falta preguntar antes de empezar a construir ni esperar a que `docs/07` la marque
+como superada.
+
+Omitir la Fase 0 significa que el producto se construye sin haber comprobado con
+un negocio real que las preguntas del banco son las adecuadas ni que el informe
+mensual resulta accionable. Es una apuesta consciente sobre el encaje del
+producto, no sobre las reglas duras: la sección "Reglas duras" de este documento
+sigue vigente sin excepciones.

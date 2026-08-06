@@ -1,0 +1,21 @@
+/* Sin fuentes web: la ruta /f/[code] no puede pagar una descarga de tipografía. */
+:root {
+  --font-system: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-system);
+  line-height: 1.5;
+}

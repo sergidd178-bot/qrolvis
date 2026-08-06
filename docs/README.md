@@ -11,7 +11,8 @@ mensual.
 
 1. Lee `CLAUDE.md`. Contiene las reglas que no se negocian.
 2. Mira el estado del proyecto en `docs/07-plan-implementacion.md`.
-3. Antes de tocar código, comprueba que la Fase 0 está superada.
+3. La Fase 0 se omitió deliberadamente, riesgo asumido por Sergi. Ver `CLAUDE.md`
+   y `docs/07-plan-implementacion.md` para qué implica ese riesgo.
 
 ## Documentación
 
@@ -33,4 +34,5 @@ Next.js · TypeScript · Supabase · Vercel · Resend
 
 ## Estado
 
-Fase 0 (validación sin código). No iniciada.
+**Fase 1 (cimientos y formulario público), en curso. Fase 0 omitida
+deliberadamente, riesgo asumido por Sergi.**

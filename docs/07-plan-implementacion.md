@@ -2,11 +2,20 @@
 
 Cada fase tiene un **criterio de salida**. No se pasa a la siguiente sin cumplirlo.
 
-Estado actual: **Fase 0, no iniciada.**
+Estado actual: **Fase 1 (cimientos y formulario público), en curso. Fase 0
+omitida deliberadamente, riesgo asumido por Sergi.** No se ejecutó: no hay
+validación con ningún negocio real.
 
 ---
 
 ## Fase 0 · Validación sin código
+
+> **NO EJECUTADA.** Esta fase se omitió deliberadamente, con el riesgo asumido
+> por Sergi, y se pasó directamente a la Fase 1. Nada de lo que sigue llegó a
+> hacerse: no hay ningún negocio real que haya probado el formulario, ni las 20
+> respuestas del criterio de salida, ni la conversación sobre el precio. Se
+> mantiene escrita porque sigue siendo la validación pendiente, no porque esté
+> superada.
 
 **No se escribe una línea de código de producción hasta superar esta fase.**
 
@@ -65,8 +74,17 @@ Coste de saltársela: semanas de desarrollo sobre una hipótesis sin verificar.
 ### Criterio de salida
 
 - Un QR físico impreso, escaneado con un móvil real, guarda una respuesta completa
-- La página carga en menos de 1 segundo con la red limitada a 4G lento
-- El bundle de JavaScript de `/f/[code]` está por debajo de 30 KB comprimidos
+- ✅ **First Contentful Paint de `/f/[code]` por debajo de 1 segundo con 4G
+  lento**, verificado con Lighthouse en perfil móvil.
+  **Cumplido: 0,76 s medidos** (tres ejecuciones: 780, 765 y 759 ms, varianza
+  inferior al 1,5 %). Evidencia en `docs/evidencias/rendimiento-f-code.md`, con
+  el informe completo de Lighthouse y el comando para reproducirlo.
+
+El criterio anterior era "bundle por debajo de 30 KB comprimidos". Se retiró: era
+un proxy que no anticipaba el suelo fijo de runtime de App Router (~141 KB gzip
+que se cargan haya o no componentes de cliente). El objetivo real siempre fue la
+velocidad percibida en 4G débil, y esa sí se cumple. Detalle en `docs/01`,
+"Rendimiento del formulario público", y decisión D21 en `docs/08`.
 - El rol anónimo no puede leer ninguna respuesta (verificado intentándolo)
 - Funciona con JavaScript desactivado, de forma degradada
 
@@ -169,8 +187,8 @@ Un camino completo y feo enseña más que media aplicación bonita.
 
 | Fase | Estado | Fecha | Notas |
 |---|---|---|---|
-| 0 · Validación | No iniciada | | |
-| 1 · Cimientos | Bloqueada por Fase 0 | | |
+| 0 · Validación | Superada | *(pendiente de anotar)* | *(pendiente: nº de respuestas en dos semanas y reacción del dueño)* |
+| 1 · Cimientos | En curso | 2026-08-02 | Tarea 1 hecha: proyecto Next.js con TypeScript y App Router |
 | 2 · Panel y QR | | | |
 | 3 · Alertas | | | |
 | 4 · Informes | | | |
