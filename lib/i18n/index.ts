@@ -21,6 +21,8 @@ export type Dictionary = {
   thanksLowTitle: string;
   thanksLowBody: string;
   googleButton: string;
+  /** Solo para lector de pantalla: el enlace de Google abre en pestaña nueva. */
+  googleNewWindow: string;
   unavailable: string;
   alreadyAnswered: string;
   sendError: string;
@@ -71,6 +73,7 @@ const dictionary: Record<Language, Dictionary> = {
     thanksLowBody:
       "Sentimos que no haya ido como esperabas. Hemos avisado al responsable y lo tendrá en cuenta. Si quieres, también puedes dejar tu opinión pública en Google.",
     googleButton: "Dejar reseña en Google",
+    googleNewWindow: "Se abre en una ventana nueva",
     unavailable: "Este código no está disponible",
     alreadyAnswered: "Ya hemos recibido tu opinión, gracias",
     sendError: "No se ha podido enviar. Reintentando…",
@@ -123,6 +126,7 @@ const dictionary: Record<Language, Dictionary> = {
     thanksLowBody:
       "Lamentem que no hagi anat com esperaves. Hem avisat el responsable i ho tindrà en compte. Si vols, també pots deixar la teva opinió pública a Google.",
     googleButton: "Deixar ressenya a Google",
+    googleNewWindow: "S'obre en una finestra nova",
     unavailable: "Aquest codi no està disponible",
     alreadyAnswered: "Ja hem rebut la teva opinió, gràcies",
     sendError: "No s'ha pogut enviar. Reintentant…",

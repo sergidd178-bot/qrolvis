@@ -448,6 +448,27 @@ export type Database = {
           question_set_id: string
         }[]
       }
+      create_business: {
+        Args: {
+          p_alert_email: string
+          p_default_language: string
+          p_google_review_url?: string
+          p_name: string
+          p_sector_id: number
+        }
+        Returns: {
+          business_id: string
+          capture_point_code: string
+        }[]
+      }
+      create_capture_point: {
+        Args: { p_business_id: string; p_label: string; p_type: string }
+        Returns: {
+          capture_point_code: string
+          capture_point_id: string
+        }[]
+      }
+      generate_capture_point_code: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never

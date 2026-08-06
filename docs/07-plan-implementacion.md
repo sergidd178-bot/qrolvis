@@ -76,9 +76,15 @@ Coste de saltársela: semanas de desarrollo sobre una hipótesis sin verificar.
 - Un QR físico impreso, escaneado con un móvil real, guarda una respuesta completa
 - ✅ **First Contentful Paint de `/f/[code]` por debajo de 1 segundo con 4G
   lento**, verificado con Lighthouse en perfil móvil.
-  **Cumplido: 0,76 s medidos** (tres ejecuciones: 780, 765 y 759 ms, varianza
-  inferior al 1,5 %). Evidencia en `docs/evidencias/rendimiento-f-code.md`, con
-  el informe completo de Lighthouse y el comando para reproducirlo.
+  **Cumplido: 722 ms**, peor caso de las tres pantallas (la 2, la más pesada;
+  la 1 da 684 ms y la 3, 699 ms). Cada cifra es la peor de tres ejecuciones.
+  Evidencia en `docs/evidencias/lighthouse-f-code-pantalla2.report.json`, con las
+  otras dos pantallas en los archivos hermanos y las condiciones en
+  `docs/evidencias/rendimiento-f-code.md`.
+
+  Depende de `experimental.inlineCss` (D22): sin ese flag el peor caso sube a
+  942 ms y el criterio queda al borde. Cualquier actualización de Next.js obliga
+  a volver a medir antes de dar el criterio por vigente.
 
 El criterio anterior era "bundle por debajo de 30 KB comprimidos". Se retiró: era
 un proxy que no anticipaba el suelo fijo de runtime de App Router (~141 KB gzip

@@ -110,8 +110,13 @@ No se añaden dependencias nuevas sin justificarlo. Ante la duda, menos librerí
 
 - **Idioma del código**: inglés. Nombres de tabla, columna, función y variable
   en inglés.
-- **Idioma de la interfaz**: castellano y catalán. Nunca texto en duro en los
-  componentes, siempre desde el diccionario de traducciones.
+- **Idioma de la interfaz pública** (`/f/[code]`): castellano y catalán. Nunca
+  texto en duro en los componentes, siempre desde el diccionario de traducciones.
+  - **Excepción deliberada: `/admin` va solo en castellano.** Lo usa una única
+    persona y mantener catalán ahí es coste sin beneficio. Sus textos viven en
+    `lib/i18n/admin.ts`, separado del diccionario del formulario para que nada
+    del panel pueda acabar importado desde la ruta pública. La regla de no poner
+    texto en duro sigue aplicando igual.
 - **Idioma de la documentación y los commits**: castellano.
 - Nombres de tabla y columna en `snake_case`, plural para tablas.
 - Componentes de React en `PascalCase`, funciones y variables en `camelCase`.

@@ -13,6 +13,7 @@
 // botón de Google se muestra a todo el que llega a la pantalla 3. Lo único que
 // depende de la valoración es el texto que lo acompaña.
 
+import { Fragment } from "react";
 import { headers } from "next/headers";
 
 import { createPublicClient } from "@/lib/db/client";
@@ -25,17 +26,30 @@ import {
   type Language,
 } from "@/lib/i18n";
 import { skipDimensions, startResponse, submitDimensions } from "./actions";
+import styles from "./screen1.module.css";
+import s2 from "./screen2.module.css";
+import s3 from "./screen3.module.css";
 
 export const dynamic = "force-dynamic";
 
-const EMOJI = ["😞", "🙁", "😐", "🙂", "😀"];
-
-const touchTarget = {
-  minWidth: "56px",
-  minHeight: "56px",
-  fontSize: "1.5rem",
-  margin: "0.25rem",
-};
+/**
+ * Bocas de los cinco iconos de valoración, de muy insatisfecho a muy satisfecho.
+ *
+ * Es lo ÚNICO que cambia entre los cinco: el círculo y los ojos son idénticos.
+ * Un solo parámetro variable es lo que hace que el conjunto se lea como un
+ * sistema y no como cinco dibujos sueltos.
+ *
+ * Coordenadas en el viewBox de 24×24. El punto de control de la curva sube o
+ * baja respecto de los extremos: por encima da ceño, por debajo da sonrisa, y
+ * el centro es una recta.
+ */
+const MOUTHS = [
+  "M8 15.9 Q12 12.6 16 15.9",
+  "M8 15.4 Q12 13.6 16 15.4",
+  "M8 14.9 H16",
+  "M8 14.2 Q12 16 16 14.2",
+  "M8 13.8 Q12 17.1 16 13.8",
+];
 
 type PageProps = {
   params: Promise<{ code: string }>;
@@ -120,6 +134,32 @@ function PrivacyNotice({
   );
 }
 
+/**
+ * Cara de valoración. Trazo único y geometría idéntica en los cinco: mismo
+ * círculo, mismos ojos, mismo grosor. `currentColor` deja que el color lo
+ * decida el estado del botón desde CSS, sin duplicar los SVG por variante.
+ */
+function RatingFace({ index }: { index: number }) {
+  return (
+    <svg
+      width="40"
+      height="40"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="12" cy="12" r="9.25" />
+      <path d="M8.75 9.4 v1.6" />
+      <path d="M15.25 9.4 v1.6" />
+      <path d={MOUTHS[index]} />
+    </svg>
+  );
+}
+
 function Screen1({
   code,
   language,
@@ -132,35 +172,64 @@ function Screen1({
   t: Dictionary;
 }) {
   return (
-    <section style={{ textAlign: "center" }}>
-      <h1>{businessName}</h1>
-      <p>{t.screen1Question}</p>
+    <section className={styles.screen}>
+      <p className={styles.business}>{businessName}</p>
+      <h1 className={styles.question}>{t.screen1Question}</h1>
+
       {/* Un solo formulario con cinco botones de envío. El navegador manda el
           name/value del botón pulsado, así que un toque crea la respuesta y
           avanza, sin botón de continuar y sin JavaScript. */}
       <form action={startResponse}>
         <input type="hidden" name="code" value={code} />
         <input type="hidden" name="language" value={language} />
-        <div role="group" aria-label={t.screen1Question}>
-          {t.ratingLabels.map((label, index) => (
-            <button
-              key={label}
-              type="submit"
-              name="rating"
-              value={index + 1}
-              aria-label={`${index + 1} - ${label}`}
-              style={{ ...touchTarget, display: "inline-block" }}
-            >
-              <span aria-hidden="true" style={{ display: "block" }}>
-                {EMOJI[index]}
-              </span>
-              {/* docs/03, accesibilidad: etiqueta textual visible, no solo el emoji */}
-              <span style={{ fontSize: "0.75rem" }}>{label}</span>
-            </button>
-          ))}
+        <div className={styles.card}>
+          <div className={styles.options} role="group" aria-label={t.screen1Question}>
+            {t.ratingLabels.map((label, index) => (
+              <button
+                key={label}
+                type="submit"
+                name="rating"
+                value={index + 1}
+                aria-label={`${index + 1} - ${label}`}
+                className={styles.option}
+              >
+                <span className={styles.iconBox}>
+                  <RatingFace index={index} />
+                </span>
+                {/* Marca del rail: convierte la fila en una escala graduada. */}
+                <span className={styles.tick} aria-hidden="true" />
+                {/* docs/03, accesibilidad: etiqueta textual visible, no solo el icono */}
+                <span className={styles.label}>{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </form>
     </section>
+  );
+}
+
+/**
+ * Estrella de valoración. Mismo lenguaje de trazo que las caras de la pantalla
+ * 1 —1,75 de grosor, extremos redondeados, geometría de 24×24— para que ambas
+ * pantallas se lean como el mismo sistema.
+ *
+ * El relleno y el contorno los decide el CSS según el radio marcado.
+ */
+function StarIcon({ size = 28 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M12 3 14.29 8.85 20.56 9.22 15.71 13.21 17.29 19.28 12 15.9 6.71 19.28 8.29 13.21 3.44 9.22 9.71 8.85 Z" />
+    </svg>
   );
 }
 
@@ -180,59 +249,90 @@ function Screen2({
   t: Dictionary;
 }) {
   return (
-    <section>
-      <h1>{t.screen2Title}</h1>
+    <section className={s2.screen}>
+      <h1 className={s2.title}>{t.screen2Title}</h1>
+
       <form action={submitDimensions}>
         <input type="hidden" name="code" value={code} />
         <input type="hidden" name="language" value={language} />
         <input type="hidden" name="responseId" value={responseId} />
 
-        {dimensions.map((dimension) => (
-          <fieldset key={dimension.id} style={{ border: 0, padding: 0, margin: "1rem 0" }}>
-            <legend>{dimension.label}</legend>
-            {/* Radios nativos: accesibles con teclado y lector de pantalla, y
-                opcionales porque ninguno lleva `required` (docs/03). */}
-            {[1, 2, 3, 4, 5].map((value) => (
-              <label
-                key={value}
-                style={{ ...touchTarget, minWidth: "44px", display: "inline-block" }}
-              >
-                <input type="radio" name={`q_${dimension.id}`} value={value} />
-                {value}
-              </label>
-            ))}
-          </fieldset>
-        ))}
+        <div className={s2.card}>
+          {dimensions.map((dimension) => (
+            <fieldset key={dimension.id} className={s2.question}>
+              <legend className={s2.legend}>{dimension.label}</legend>
+              {/* Radios nativos en orden natural 1→5. Ninguno lleva `required`:
+                  las cuatro dimensiones son siempre opcionales (docs/03). */}
+              <div className={s2.stars}>
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <Fragment key={value}>
+                    <input
+                      className={s2.srOnly}
+                      type="radio"
+                      id={`${dimension.id}-${value}`}
+                      name={`q_${dimension.id}`}
+                      value={value}
+                      aria-label={`${value} / 5`}
+                    />
+                    <label className={s2.star} htmlFor={`${dimension.id}-${value}`}>
+                      <StarIcon />
+                    </label>
+                  </Fragment>
+                ))}
+              </div>
+            </fieldset>
+          ))}
+        </div>
 
         {commentLabel && (
-          <p>
-            <label htmlFor="comment">
-              {commentLabel} {t.commentOptional}
+          <>
+            <label className={s2.commentLabel} htmlFor="comment">
+              {commentLabel} <span className={s2.optional}>{t.commentOptional}</span>
             </label>
-            <br />
-            <textarea id="comment" name="comment" rows={3} style={{ width: "100%" }} />
-          </p>
+            <textarea id="comment" name="comment" rows={2} className={s2.textarea} />
+          </>
         )}
 
-        <button type="submit" style={touchTarget}>
+        <button type="submit" className={s2.submit}>
           {t.send}
         </button>
       </form>
 
       {/* Saltar es su propio formulario: un <form> no puede anidarse en otro, y
           sin JavaScript no hay forma de que un botón envíe a otra acción. */}
-      <form action={skipDimensions}>
+      <form action={skipDimensions} className={s2.skipForm}>
         <input type="hidden" name="code" value={code} />
         <input type="hidden" name="language" value={language} />
         <input type="hidden" name="responseId" value={responseId} />
-        <button
-          type="submit"
-          style={{ ...touchTarget, background: "none", border: 0, textDecoration: "underline" }}
-        >
+        <button type="submit" className={s2.skip}>
           {t.skip}
         </button>
       </form>
     </section>
+  );
+}
+
+/**
+ * Sello de recibido. Mismo círculo y mismo trazo que las caras de la pantalla 1:
+ * el formulario abre con círculos que preguntan y cierra con el que confirma.
+ */
+function SealIcon() {
+  return (
+    <svg
+      width="48"
+      height="48"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="12" cy="12" r="9.25" />
+      <path d="M8.2 12.3 10.9 15 15.8 9.3" />
+    </svg>
   );
 }
 
@@ -247,25 +347,32 @@ function Screen3({
 }) {
   const positive = rating !== null && rating >= 4;
   return (
-    <section style={{ textAlign: "center" }}>
-      {/* Solo el TEXTO depende de la valoración. */}
-      <h1>{positive ? t.thanksHighTitle : t.thanksLowTitle}</h1>
-      <p>{positive ? t.thanksHighBody : t.thanksLowBody}</p>
+    <section className={s3.screen}>
+      <span className={s3.seal}>
+        <SealIcon />
+      </span>
+
+      {/* Solo el TEXTO depende de la valoración. Ni el sello, ni los colores, ni
+          el tamaño, ni la posición del botón: las dos versiones de esta pantalla
+          son idénticas salvo estas dos cadenas. */}
+      <h1 className={s3.title}>{positive ? t.thanksHighTitle : t.thanksLowTitle}</h1>
+      <p className={s3.body}>{positive ? t.thanksHighBody : t.thanksLowBody}</p>
 
       {/* El botón se muestra siempre que el negocio tenga URL, sea cual sea la
           valoración. La única condición admisible es la ausencia de URL
-          (docs/03, "Casos límite"). */}
+          (docs/03, "Casos límite"). Cualquier condicional que ate este botón a
+          `rating` es un fallo bloqueante en revisión. */}
       {googleReviewUrl && (
-        <p>
-          <a
-            href={googleReviewUrl}
-            rel="noopener noreferrer"
-            target="_blank"
-            style={{ ...touchTarget, display: "inline-block", padding: "1rem" }}
-          >
-            {t.googleButton}
-          </a>
-        </p>
+        <a
+          className={s3.button}
+          href={googleReviewUrl}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          <StarIcon size={20} />
+          {t.googleButton}
+          <span className={s3.srOnly}>{t.googleNewWindow}</span>
+        </a>
       )}
     </section>
   );

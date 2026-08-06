@@ -1,0 +1,113 @@
+/* Pantalla 3: cierre y enlace a Google. Solo móvil.
+ *
+ * REGLA BLOQUEANTE (R2, docs/03): esta hoja NO contiene ninguna regla que
+ * dependa de la valoración. Las dos versiones de la pantalla —valoración alta y
+ * baja— son idénticas píxel a píxel; lo único que cambia son dos cadenas del
+ * diccionario. Si algún día hay que demostrar que no hay filtrado de reseñas,
+ * "solo cambian las palabras" se verifica con un diff.
+ *
+ * Sin tarjeta #F8FAFC a propósito: las pantallas 1 y 2 la usan para agrupar
+ * aquello sobre lo que hay que actuar. Aquí no queda nada que hacer, y el
+ * contraste con las dos anteriores es la señal de que esto ha terminado. */
+
+.screen {
+  min-height: calc(100dvh - 7rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+/* El sello de recibido: mismo círculo y mismo trazo que las caras de la
+   pantalla 1. La 1 abre con círculos que preguntan, la 3 cierra con el mismo
+   círculo confirmando. Dice "tu respuesta ha llegado", no "tu respuesta era
+   buena": es idéntico en los dos casos. */
+.seal {
+  display: block;
+  margin-bottom: 1rem;
+  color: #2563eb;
+}
+
+.title {
+  margin: 0 0 0.75rem;
+  font-size: 1.625rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: #1f2937;
+  text-wrap: balance;
+}
+
+/* Cuerpo en gris y título en oscuro: la jerarquía lleva la mirada al botón sin
+   que el botón tenga que gritar. Ancho limitado por medida de lectura. */
+.body {
+  margin: 0 0 2rem;
+  max-width: 34ch;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: #6b7280;
+  text-wrap: pretty;
+}
+
+/* Texto #1F2937 y no blanco: blanco sobre #22C55E da 2,28:1 y no pasa; el
+   oscuro da 6,44:1. */
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 1rem;
+  border-radius: 12px;
+  background: #22c55e;
+  color: #1f2937;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 150ms ease;
+}
+
+/* La estrella es la misma de la pantalla 2, en contorno. Dice "reseña" sin
+   explicarlo y cose las dos pantallas. No se dibuja la G de Google: es marca
+   registrada con guía de uso propia y rompería el sistema de trazo. */
+.button svg {
+  flex: none;
+  fill: none;
+  stroke: #1f2937;
+}
+
+.button:active {
+  transform: scale(0.98);
+}
+
+.button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* El enlace abre en pestaña nueva. Se anuncia con texto para lector de pantalla
+   en vez de con una flecha, que ensuciaría el botón. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+  .button:active {
+    transform: none;
+  }
+}

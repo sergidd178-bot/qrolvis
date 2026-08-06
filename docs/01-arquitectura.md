@@ -57,8 +57,24 @@ la duplicación de la resolución de datos y de la regla de Google, no el salto.
 Requisito: **First Contentful Paint por debajo de 1 segundo con 4G lento**,
 verificado con Lighthouse en perfil móvil.
 
-Medición vigente: **0,76 s** de FCP. Ver `docs/evidencias/rendimiento-f-code.md`
-para condiciones, cifras completas y cómo reproducirlo.
+Medición vigente: **722 ms** de FCP. Es el **peor caso** de las tres pantallas
+—la 2, la más pesada— y la cifra que hay que citar, no la mejor.
+
+| Pantalla | FCP, peor de tres ejecuciones |
+|---|---|
+| 1 · valoración global | 684 ms |
+| 2 · dimensiones y comentario | **722 ms** |
+| 3 · cierre y Google | 699 ms |
+
+Evidencia:
+`docs/evidencias/lighthouse-f-code-pantalla2.report.json`, con las otras dos
+pantallas en los archivos hermanos. Condiciones y cómo reproducirlo en
+`docs/evidencias/rendimiento-f-code.md`.
+
+El FCP **no escala con el tamaño del documento**: la pantalla 2 sirve 39 KB de
+HTML y la 3 sirve 8 KB, y miden prácticamente lo mismo. Lo que fija el suelo es
+la evaluación del runtime, no los bytes. No tiene sentido razonar sobre esta
+ruta en términos de "presupuesto de contenido que se va gastando".
 
 Reglas:
 
@@ -198,10 +214,20 @@ que el trigger de `responses`: el sistema no se rompe, simplemente empieza a
 mentir, y un informe construido sobre una consulta vacía parece un informe
 válido.
 
-Al construir el panel en la Fase 2 hay que decidirlo explícitamente: o el
-operador tiene sus propias policies para `authenticated`, o todo el acceso a
-datos pasa siempre por la clave secreta desde el servidor. Lo que no vale es
-dejarlo sin decidir y descubrirlo con un informe en blanco.
+**DECIDIDO en la Fase 2 (D23): todo el acceso a datos del panel pasa por la
+clave secreta desde el servidor.** No se crean policies para `authenticated` y
+`authenticated` sigue sin poder leer nada.
+
+La sesión de Supabase Auth cumple una única función: identificar al operador y
+dar paso. La comprobación vive en el layout de `app/admin/(panel)/`, que llama a
+`getUser()` y redirige a `/admin/login` si no hay sesión. A partir de ahí, cada
+consulta usa `createAdminClient()`.
+
+Consecuencia práctica que conviene tener presente: **el navegador del panel nunca
+consulta Supabase directamente**. Si alguna pantalla futura necesitara hacerlo,
+no devolvería vacío en silencio como se temía aquí, sino que habría que decidir
+de nuevo y crear las policies correspondientes. Mientras no ocurra, el fallo
+silencioso descrito arriba no puede darse.
 
 ---
 

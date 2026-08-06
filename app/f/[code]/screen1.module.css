@@ -1,0 +1,227 @@
+/* Pantalla 1 del formulario público. Solo móvil (viewport de 375-430 px).
+ *
+ * Vive en un CSS Module y no en estilos en línea porque :active y
+ * :focus-visible no se pueden expresar en línea. Un módulo se extrae a hoja de
+ * estilos y no añade JavaScript, así que no toca el criterio de D21.
+ *
+ * Paleta fijada: #FFFFFF fondo, #F8FAFC tarjeta, #2563EB azul, #1F2937 texto,
+ * #E5E7EB bordes, #6B7280 gris neutro. */
+
+.screen {
+  /* dvh y no vh: en móvil la barra del navegador falsea vh y recorta la
+     pantalla. Se descuenta el padding y el pie del contenedor común. */
+  min-height: calc(100dvh - 7rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Residencia fija del azul.
+ *
+ * En reposo la pantalla no tenía ni un punto de color: el acento solo aparecía
+ * durante los ~150 ms de la pulsación, y justo después se navega. Es decir, en
+ * el estado que la persona realmente ve no había color de acento, y por eso la
+ * pantalla se leía apagada.
+ *
+ * El azul vive aquí y en ningún otro sitio en reposo. Fondo al 8 %: da 4,63:1
+ * para el texto azul, por encima del 4,5 exigido. Al 12 % ya bajaría a 4,37 y
+ * no pasaría. */
+.business {
+  align-self: center;
+  margin: 0 0 1rem;
+  padding: 0.3125rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.08);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #2563eb;
+}
+
+/* La pregunta es lo primero que debe leerse: quien escanea ya sabe en qué
+   local está, así que el nombre del negocio baja de jerarquía.
+   El interletrado negativo compensa el cuerpo grande: a 30px el tracking por
+   defecto del sistema abre demasiado y la frase pierde unidad. */
+.question {
+  margin: 0 0 2rem;
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: #1f2937;
+  text-wrap: balance;
+}
+
+/* La escala: los cinco iconos no flotan sueltos, se apoyan en un rail con
+   marcas. Convierte cinco botones en un instrumento de medida y hace evidente
+   que hay que elegir un punto de un rango. */
+.card {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 1.25rem 0.5rem 1rem;
+}
+
+.options {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* Rail horizontal, la base de la escala.
+ *
+ * En #E5E7EB daba 1,18:1 sobre la tarjeta: por debajo de la mitad del 3:1 que
+ * WCAG pide para un gráfico no textual, o sea invisible. Va en el gris aprobado
+ * al 80 %, que mide 3,18:1. Las marcas van a color pleno (4,62:1) para que se
+ * lean por encima del rail: en un instrumento la graduación pesa más que la
+ * base sobre la que se apoya.
+ *
+ * El 76px sale de la geometría del arco: 12px de desplazamiento + 56px de
+ * icono + 8px de marca. Todas las columnas suman lo mismo, así que las marcas
+ * terminan exactamente en el rail. */
+.options::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 76px;
+  height: 1px;
+  background: rgba(107, 114, 128, 0.8);
+}
+
+/* El arco: las cinco caras se escalonan de menor a mayor, así que la propia
+   fila dibuja el espectro que se está midiendo. El desplazamiento es padding y
+   no transform para que las marcas y las etiquetas lo sigan en el flujo.
+   Cada columna compensa su desplazamiento con la altura de su marca. */
+.option:nth-child(1) {
+  padding-top: 12px;
+}
+.option:nth-child(2) {
+  padding-top: 9px;
+}
+.option:nth-child(3) {
+  padding-top: 6px;
+}
+.option:nth-child(4) {
+  padding-top: 3px;
+}
+.option:nth-child(5) {
+  padding-top: 0;
+}
+
+.option:nth-child(1) .tick {
+  height: 8px;
+}
+.option:nth-child(2) .tick {
+  height: 11px;
+}
+.option:nth-child(3) .tick {
+  height: 14px;
+}
+.option:nth-child(4) .tick {
+  height: 17px;
+}
+.option:nth-child(5) .tick {
+  height: 20px;
+}
+
+.option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 44px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 14px;
+  color: #6b7280;
+  font: inherit;
+  cursor: pointer;
+  /* Elimina el retardo de 300 ms al tocar y el flash gris de Android. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    transform 150ms ease;
+}
+
+/* Zona táctil de 56px: por encima del mínimo de 44px, con 10px de separación. */
+.iconBox {
+  position: relative;
+  z-index: 1;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  transition:
+    background-color 150ms ease,
+    transform 150ms ease;
+}
+
+/* La altura de cada marca la fija el bloque del arco: varía por columna para
+   que todas terminen en el rail. */
+.tick {
+  width: 1px;
+  background: #6b7280;
+}
+
+.label {
+  margin-top: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: #6b7280;
+  transition: color 150ms ease;
+}
+
+/* En esta pantalla no existe estado "seleccionado": tocar envía el formulario
+   y salta a la pantalla 2. El azul se reserva para los estados que sí ocurren.
+   Se usa :hover solo como refuerzo en dispositivos con puntero real. */
+.option:active {
+  color: #2563eb;
+}
+
+.option:active .iconBox {
+  background: rgba(37, 99, 235, 0.08);
+  transform: scale(0.94);
+}
+
+.option:active .label {
+  color: #2563eb;
+}
+
+.option:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .option:hover {
+    color: #2563eb;
+  }
+  .option:hover .iconBox {
+    background: rgba(37, 99, 235, 0.06);
+  }
+  .option:hover .label {
+    color: #2563eb;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .option,
+  .iconBox,
+  .label {
+    transition: none;
+  }
+  .option:active .iconBox {
+    transform: none;
+  }
+}

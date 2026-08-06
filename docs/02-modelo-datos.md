@@ -113,6 +113,103 @@ create table capture_points (
 );
 
 create index capture_points_business on capture_points(business_id);
+```
+
+### Formato de `capture_points.code`
+
+`docs/01` fija 8 caracteres con "alfabeto sin caracteres ambiguos", pero no decía
+cuál. Queda fijado aquí:
+
+```
+23456789BCDFGHJKMNPQRSTVWXYZ
+```
+
+28 caracteres. Dos exclusiones, cada una por su motivo:
+
+- **Sin `0`/`O` ni `1`/`I`/`L`.** Son los que se confunden al teclear la URL a
+  mano, que es justo el caso para el que el código es corto.
+- **Sin vocales.** Así ningún código puede formar una palabra por accidente. Con
+  material impreso y colocado en mesas de bares, eso importa más de lo que
+  parece.
+
+28⁸ ≈ 3,8 × 10¹¹ combinaciones. La generación vive en la función
+`generate_capture_point_code()`, que reintenta si colisiona con un código ya
+existente.
+
+**Cambiar este alfabeto no regenera los códigos ya emitidos** ni los invalida: el
+material físico ya impreso manda (D1). Solo afecta a los que se creen después.
+
+### Contenido de `capture_points.qr_asset_url`
+
+Pese al nombre, **no guarda una URL: guarda la ruta del objeto en Supabase
+Storage**.
+
+```
+qr/<capture_point_id>.svg
+```
+
+El bucket `qr` es **privado**, y de un bucket privado no existe una URL estable
+que almacenar: se sirven URLs firmadas de vida corta (300 s), que se generan en
+cada visita del panel. Guardar una caducaría en minutos.
+
+Se usa el `capture_point_id` en el nombre y no el código, porque el id no
+aparece en ninguna parte pública.
+
+**`null` significa "todavía sin imagen"**, no "roto". La imagen es dato
+derivado: se reconstruye siempre desde el código con el botón de la ficha. Ese
+estado aparece en dos casos: puntos creados antes de que existiera la generación,
+y generaciones que fallaron.
+
+**Por qué el bucket es privado.** La imagen no contiene ningún secreto —codifica
+una URL pública— pero un bucket público permite **listar** sus objetos, y esa
+lista daría el catálogo completo de códigos de todos los negocios. Los códigos no
+son adivinables por fuerza bruta, pero sí enumerables si el bucket está abierto,
+y con ellos se podrían enviar respuestas falsas a cualquier cliente. Además no
+hace falta: el QR solo se muestra en el panel autenticado y en el PDF, ambos
+generados en servidor.
+
+### Formato de `businesses.google_review_url`
+
+Este campo alimenta el botón de la pantalla 3 y **es el que produce el valor por
+el que paga el cliente**: más reseñas en Google. Un enlace mal pegado no da
+error en ningún sitio; simplemente lleva a la persona a la ficha del negocio, y
+ahí la mayoría abandona sin escribir nada. Se pierde silenciosamente.
+
+**Formato correcto**, el que abre directamente el cuadro de escribir reseña:
+
+```
+https://search.google.com/local/writereview?placeid=PLACE_ID
+```
+
+El `PLACE_ID` se obtiene en el Place ID Finder de Google:
+<https://developers.google.com/maps/documentation/places/web-service/place-id>
+Funciona aunque no se administre el perfil del negocio.
+
+**Alternativa válida:** el enlace corto que genera el propio panel de Google
+Business Profile en "Pide reseñas", con la forma `https://g.page/r/CÓDIGO/review`.
+Termina en `/review`; si no termina así, no abre el cuadro.
+
+**Lo que NO sirve**, aunque parezca que sí:
+
+| Pegado en el campo | Qué hace |
+|---|---|
+| `https://www.google.com/maps/place/...` | Abre la ficha, no el cuadro de reseña |
+| `https://g.page/nombre` (sin `/review`) | Abre la ficha |
+| `https://www.google.com/search?q=...` | Abre una búsqueda. No tiene nada que ver |
+| URL acortada `maps.app.goo.gl` | Abre la ficha o el mapa, según el caso |
+
+**Comprobación obligatoria al dar de alta un negocio:** abrir la URL en una
+ventana de incógnito. Si no aparece el cuadro de puntuar y escribir, el enlace
+no vale. No basta con que cargue algo de Google.
+
+El campo admite `null`: sin URL, la pantalla 3 muestra solo el agradecimiento y
+ningún botón (`docs/03`, "Casos límite"). Es preferible dejarlo vacío a poner un
+enlace que no abra el cuadro.
+
+**No hay validación de formato en base de datos ni en la aplicación.** El valor
+se vuelca tal cual en el `href` del botón. La comprobación es humana, en el alta.
+
+```sql
 
 -- =====================================================
 -- RESPUESTAS
