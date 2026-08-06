@@ -51,6 +51,23 @@ export function CapturePoints({
         }}
       >
         <h2 style={{ fontSize: "1.0625rem", margin: 0 }}>{admin.capturePoints}</h2>
+        <a
+          href={`/admin/negocios/${businessId}/qr`}
+          title={admin.downloadPdfHint}
+          style={{
+            marginLeft: "auto",
+            marginRight: "0.75rem",
+            padding: "0.375rem 0.75rem",
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            color: "#2563eb",
+            fontSize: "0.8125rem",
+            fontWeight: 600,
+            textDecoration: "none",
+          }}
+        >
+          {admin.downloadPdf}
+        </a>
         {/* Cero activos se marca en rojo: el negocio no puede recibir respuestas
             aunque tenga filas en la base. */}
         <span style={{ fontSize: "0.8125rem", color: active === 0 ? "#991b1b" : "#6b7280" }}>

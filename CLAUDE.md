@@ -80,7 +80,7 @@ terceros en esa ruta.
 | Base de datos, auth y storage | Supabase (PostgreSQL) |
 | Alojamiento | Vercel |
 | Email transaccional | Resend |
-| Generación de PDF | HTML a PDF en servidor |
+| Generación de PDF | `@react-pdf/renderer` en servidor, sin navegador (D24) |
 | Generación de QR | Librería en servidor, salida en PDF imprimible |
 
 No se añaden dependencias nuevas sin justificarlo. Ante la duda, menos librerías.

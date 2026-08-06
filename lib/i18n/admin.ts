@@ -100,6 +100,60 @@ export const admin = {
   qrProvisionalDetail: (url: string) =>
     `Generados contra ${url}. Cuando exista el dominio definitivo, cámbialo en NEXT_PUBLIC_SITE_URL y pulsa «Regenerar» en cada punto: el código no cambia, solo la URL que codifica la imagen.`,
   qrEncodes: "Codifica",
+  // Respuestas
+  responses: "Respuestas",
+  filterBusiness: "Negocio",
+  filterAll: "Todos",
+  filterFrom: "Desde",
+  filterTo: "Hasta",
+  filterRating: "Valoración",
+  filterRatingAll: "Todas",
+  filterDetractors: "≤ 2 (detractores)",
+  filterState: "Estado",
+  filterStateAll: "Todas",
+  filterComplete: "Solo completas",
+  filterPartial: "Solo parciales",
+  applyFilters: "Filtrar",
+  clearFilters: "Quitar filtros",
+  responseCount: (n: number) => (n === 1 ? "1 respuesta" : `${n} respuestas`),
+  noResponses: "No hay respuestas con estos filtros.",
+  noResponsesHint:
+    "No significa que algo falle: un local puede tener un periodo flojo. Prueba a ampliar las fechas o a quitar filtros.",
+  colDate: "Fecha",
+  colBusiness: "Negocio",
+  colPoint: "Punto",
+  colRating: "Valoración",
+  colComment: "Comentario",
+  hasComment: "Sí",
+  noComment: "—",
+  complete: "completa",
+  partial: "parcial",
+  // R-M3: las parciales cuentan. Se dice en la interfaz para que nadie
+  // interprete el listado como si faltaran datos.
+  partialNote:
+    "Las respuestas parciales cuentan como respuestas válidas (R-M3): descartarlas sesgaría el resultado hacia quien tiene más paciencia.",
+  page: "Página",
+  previous: "Anterior",
+  next: "Siguiente",
+
+  // Comentarios
+  comments: "Comentarios",
+  seeComments: "Ver comentarios",
+  seeResponses: "Ver listado de respuestas",
+  commentCount: (n: number) => (n === 1 ? "1 comentario" : `${n} comentarios`),
+  ofResponses: (n: number) => (n === 1 ? "1 respuesta en el mismo periodo" : `${n} respuestas en el mismo periodo`),
+  noComments: "No hay comentarios con estos filtros.",
+  noCommentsHint:
+    "La mayoría de las respuestas no llevan texto: el campo es opcional y va al final. Que no haya comentarios no significa que no haya respuestas.",
+  lowFirst: "Ordenados por valoración: primero los más bajos, que son los accionables (docs/05 §2.9).",
+  // docs/06: el texto libre es la vía por la que pueden entrar datos personales
+  // que la propia persona escribió.
+  personalDataWarning:
+    "El texto va íntegro, tal como se escribió. Puede contener datos personales que la persona incluyó por su cuenta —un nombre, la descripción de alguien del equipo—. No lo reenvíes fuera de aquí.",
+
+  downloadPdf: "Descargar PDF de QR",
+  downloadPdfHint:
+    "Un QR por página, con su etiqueta y su código. Solo los puntos activos.",
 
   // Confirmaciones
   createdWithPoint: (name: string, code: string) =>

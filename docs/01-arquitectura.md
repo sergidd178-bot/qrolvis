@@ -260,6 +260,21 @@ Salida: un PDF por negocio con todos sus puntos de captación, formato imprimibl
 con la etiqueta de cada punto visible ("Mesa 4", "Ana") para que el personal sepa
 cuál colocar dónde.
 
+**Cómo se compone el PDF.** Con `@react-pdf/renderer`, no con un navegador sin
+cabeza. No es HTML a PDF: se compone el documento directamente (D24).
+
+El QR llega a la página **como vector**, extrayendo los `path` del SVG guardado
+en Storage, así que sale nítido a cualquier tamaño de impresión. Los bytes se
+descargan con la clave secreta desde el servidor: **no intervienen URLs
+firmadas**, que solo hacen falta cuando es un navegador quien pide el objeto.
+
+Se imprimen únicamente los puntos **activos**: uno desactivado lleva a "código no
+disponible", así que imprimirlo sería fabricar cartelería muerta.
+
+Mientras `NEXT_PUBLIC_SITE_URL` sea provisional, cada página sale con una marca
+visible de "no imprimir". El aviso del panel no viaja con el archivo; la marca
+sí, y alguien puede descargar el PDF hoy e imprimirlo semanas después.
+
 **Regla crítica:** el código de un punto de captación no cambia nunca. Cambiarlo
 obliga a reimprimir material físico ya colocado en el local.
 
