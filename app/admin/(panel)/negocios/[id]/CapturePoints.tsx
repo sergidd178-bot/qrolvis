@@ -5,9 +5,14 @@
 
 import { POINT_TYPES, type CapturePointRow } from "@/lib/db/capturePoints";
 import { admin } from "@/lib/i18n/admin";
+import type { QrStatus } from "@/lib/qr";
 import { addCapturePointAction, generateQrAction, toggleCapturePointAction } from "./actions";
 
-export type PointWithQr = CapturePointRow & { qrUrl: string | null; formUrl: string };
+export type PointWithQr = CapturePointRow & {
+  qrUrl: string | null;
+  qrStatus: QrStatus;
+  formUrl: string;
+};
 
 const cell: React.CSSProperties = {
   padding: "0.625rem 0.75rem",
@@ -39,6 +44,11 @@ export function CapturePoints({
   siteUrl: string;
 }) {
   const active = points.filter((p) => p.is_active).length;
+  // Se cuentan los activos: un punto desactivado con el QR viejo no va a
+  // imprimirse, así que no merece un aviso en cabecera.
+  const unprintable = points.filter(
+    (p) => p.is_active && (p.qrStatus === "stale" || p.qrStatus === "unverifiable"),
+  ).length;
 
   return (
     <section style={{ marginTop: "2.5rem" }}>
@@ -75,8 +85,13 @@ export function CapturePoints({
         </span>
       </div>
 
-      {/* Aviso bien visible junto a los QR: mientras el dominio sea provisional,
-          cualquiera de estas imágenes impresa es papel muerto. */}
+      {/* Dos avisos por motivos distintos, y pueden salir a la vez.
+
+          El de dominio provisional mira la configuración: lo que generes hoy no
+          sirve. El de QR caducado mira las imágenes ya guardadas: el dominio
+          puede ser correcto y la imagen apuntar a otro sitio. Ese segundo caso
+          es el que antes pasaba desapercibido, porque solo se consultaba la
+          variable de entorno. */}
       {provisionalDomain && (
         <p
           style={{
@@ -93,6 +108,26 @@ export function CapturePoints({
           <strong>{admin.qrProvisional}</strong>
           <br />
           {admin.qrProvisionalDetail(siteUrl)}
+        </p>
+      )}
+
+      {unprintable > 0 && (
+        <p
+          role="alert"
+          style={{
+            margin: "0 0 1rem",
+            padding: "0.75rem 0.875rem",
+            border: "1px solid #fca5a5",
+            borderRadius: "8px",
+            background: "#fef2f2",
+            color: "#991b1b",
+            fontSize: "0.875rem",
+            lineHeight: 1.5,
+          }}
+        >
+          <strong>{admin.qrStaleCount(unprintable)}</strong>
+          <br />
+          {admin.qrStaleDetail}
         </p>
       )}
 
@@ -126,7 +161,9 @@ export function CapturePoints({
               <td style={cell}>
                 {p.qrUrl ? (
                   <>
-                    {/* Miniatura servida con URL firmada: el bucket es privado. */}
+                    {/* Miniatura servida con URL firmada: el bucket es privado.
+                        Si la imagen está caducada se marca en rojo, para que no
+                        parezca buena de un vistazo. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={p.qrUrl}
@@ -135,14 +172,26 @@ export function CapturePoints({
                       height={72}
                       style={{
                         display: "block",
-                        border: "1px solid #e5e7eb",
+                        border: p.qrStatus === "ok" ? "1px solid #e5e7eb" : "2px solid #991b1b",
                         borderRadius: "6px",
                         background: "#ffffff",
                       }}
                     />
-                    <span style={{ fontSize: "0.6875rem", color: "#6b7280" }}>
-                      {admin.qrEncodes} {p.formUrl}
-                    </span>
+                    {p.qrStatus === "ok" ? (
+                      // Solo se afirma qué codifica cuando se ha comprobado que
+                      // es cierto. Con la imagen caducada, `formUrl` es la URL
+                      // que DEBERÍA llevar, no la que lleva: decirlo aquí sería
+                      // justo la mentira que este cambio viene a quitar.
+                      <span style={{ fontSize: "0.6875rem", color: "#6b7280" }}>
+                        {admin.qrEncodes} {p.formUrl}
+                        <br />
+                        {admin.qrVerified}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: "0.6875rem", color: "#991b1b", fontWeight: 600 }}>
+                        {p.qrStatus === "stale" ? admin.qrStale : admin.qrUnverifiable}
+                      </span>
+                    )}
                   </>
                 ) : (
                   <span style={{ fontSize: "0.8125rem", color: "#991b1b" }}>{admin.qrMissing}</span>

@@ -13,7 +13,7 @@ import {
 
 import { createAdminClient } from "../db/admin";
 import type { CapturePointRow } from "../db/capturePoints";
-import { formUrlFor, isProvisionalDomain } from "../qr";
+import { formUrlFor, isProvisionalDomain, qrMatchesCurrentSite } from "../qr";
 
 /**
  * Un `path` del SVG del QR. El generador produce exactamente dos: el fondo
@@ -86,17 +86,27 @@ function QrPage({
   point,
   art,
   provisional,
+  stale,
 }: {
   businessName: string;
   point: CapturePointRow;
   art: QrArt;
   provisional: boolean;
+  stale: boolean;
 }) {
   return (
     <Page size="A4" style={styles.page}>
       {/* La marca viaja CON el archivo. El aviso del panel no: alguien puede
-          descargar este PDF hoy e imprimirlo semanas después. */}
-      {provisional && <Text style={styles.warning}>QR DE PRUEBA · NO IMPRIMIR</Text>}
+          descargar este PDF hoy e imprimirlo semanas después.
+
+          La de imagen caducada es POR PÁGINA, no del documento entero: en un
+          negocio pueden convivir puntos regenerados y puntos viejos, y marcar
+          todo el PDF haría que se ignorase el aviso en las páginas correctas. */}
+      {stale ? (
+        <Text style={styles.warning}>QR CADUCADO · NO LLEVA AL FORMULARIO · NO IMPRIMIR</Text>
+      ) : (
+        provisional && <Text style={styles.warning}>QR DE PRUEBA · NO IMPRIMIR</Text>
+      )}
 
       <Text style={styles.business}>{businessName}</Text>
 
@@ -146,7 +156,7 @@ export async function buildQrSheet(
   const supabase = createAdminClient();
   const provisional = isProvisionalDomain();
 
-  const pages: { point: CapturePointRow; art: QrArt }[] = [];
+  const pages: { point: CapturePointRow; art: QrArt; stale: boolean }[] = [];
   const skipped: string[] = [];
 
   for (const point of printable) {
@@ -155,12 +165,22 @@ export async function buildQrSheet(
       continue;
     }
     const { data } = await supabase.storage.from("qr").download(point.qr_asset_url);
-    const art = data ? parseQrSvg(await data.text()) : null;
+    if (!data) {
+      skipped.push(point.label);
+      continue;
+    }
+
+    const svg = await data.text();
+    const art = parseQrSvg(svg);
     if (!art) {
       skipped.push(point.label);
       continue;
     }
-    pages.push({ point, art });
+
+    // Los bytes ya están aquí, así que verificar a dónde apunta la imagen no
+    // cuesta ni una descarga más. La página se genera igual: se marca, no se
+    // esconde, para que quien la abra vea cuál falla y pueda regenerarla.
+    pages.push({ point, art, stale: !(await qrMatchesCurrentSite(svg, point.code)) });
   }
 
   if (pages.length === 0) {
@@ -173,13 +193,14 @@ export async function buildQrSheet(
 
   const pdf = await renderToBuffer(
     <Document title={`QR · ${businessName}`}>
-      {pages.map(({ point, art }) => (
+      {pages.map(({ point, art, stale }) => (
         <QrPage
           key={point.id}
           businessName={businessName}
           point={point}
           art={art}
           provisional={provisional}
+          stale={stale}
         />
       ))}
     </Document>,

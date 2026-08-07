@@ -100,6 +100,20 @@ export const admin = {
   qrProvisionalDetail: (url: string) =>
     `Generados contra ${url}. Cuando exista el dominio definitivo, cámbialo en NEXT_PUBLIC_SITE_URL y pulsa «Regenerar» en cada punto: el código no cambia, solo la URL que codifica la imagen.`,
   qrEncodes: "Codifica",
+
+  // El aviso de imagen caducada es distinto del de dominio provisional: aquí el
+  // dominio puede ser correcto y aun así la imagen guardada apuntar a otro sitio.
+  qrStale: "Caducado, no imprimir",
+  qrStaleDetail:
+    "Esta imagen codifica una URL distinta de la actual: se generó contra otro dominio, contra localhost o contra una IP de red local. Impresa, no llevaría al formulario. Pulsa «Regenerar».",
+  qrUnverifiable: "Sin verificar",
+  qrUnverifiableDetail:
+    "No se ha podido descargar la imagen para comprobar a dónde apunta. No se da por buena: regenérala antes de imprimir.",
+  qrStaleCount: (n: number) =>
+    n === 1
+      ? "1 QR no coincide con el dominio actual y no debe imprimirse."
+      : `${n} QR no coinciden con el dominio actual y no deben imprimirse.`,
+  qrVerified: "Comprobado contra el dominio actual",
   // Respuestas
   responses: "Respuestas",
   filterBusiness: "Negocio",

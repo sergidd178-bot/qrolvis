@@ -38,7 +38,14 @@ export function siteUrl(): string {
   return url.replace(/\/+$/, "");
 }
 
-/** true si el dominio configurado no sirve para imprimir. */
+/**
+ * true si el dominio configurado no sirve para imprimir.
+ *
+ * Responde por el DESTINO, no por las imágenes: dice que lo que generes hoy no
+ * vale, no que lo ya generado esté mal. Para eso está `qrStatusFor()`, y son
+ * fallos distintos —el dominio puede ser bueno y la imagen vieja, que es
+ * justamente el caso que se colaba antes—. El panel avisa si salta cualquiera.
+ */
 export function isProvisionalDomain(): boolean {
   try {
     const { protocol, hostname } = new URL(siteUrl());
@@ -63,6 +70,67 @@ export function qrObjectPath(capturePointId: string): string {
 }
 
 /**
+ * Render del SVG. Lo usan TANTO la generación como la verificación, y ese es el
+ * motivo de que exista: si cada una construyera su SVG por su cuenta, podrían
+ * divergir y la verificación empezaría a dar falsos positivos sin que nadie lo
+ * notara hasta tener papel impreso de más.
+ */
+function renderQrSvg(code: string): Promise<string> {
+  return QRCode.toString(formUrlFor(code), { type: "svg", ...QR_OPTIONS });
+}
+
+/**
+ * Estado de la imagen guardada respecto al dominio configurado AHORA.
+ *
+ * - `ok`            coincide, se puede imprimir
+ * - `stale`         codifica otra URL: se generó contra localhost, una IP de
+ *                   red local o un dominio anterior
+ * - `missing`       el punto no tiene imagen
+ * - `unverifiable`  hay ruta pero no se pudo descargar o leer
+ */
+export type QrStatus = "ok" | "stale" | "missing" | "unverifiable";
+
+/**
+ * ¿El SVG guardado codifica la URL que le tocaría hoy?
+ *
+ * No se decodifica el QR. `QRCode.toString()` es determinista —mismas opciones y
+ * misma URL producen el mismo SVG carácter por carácter—, así que basta con
+ * volver a generarlo y comparar. Eso no permite saber QUÉ URL codifica un SVG
+ * cualquiera, pero sí responder la única pregunta que importa antes de imprimir:
+ * si codifica la que debe.
+ *
+ * Se comprueba el artefacto real y no un campo en la base. Un campo diría lo que
+ * creímos haber generado; los bytes dicen lo que hay.
+ *
+ * ADVERTENCIA: la comparación también falla si cambian `QR_OPTIONS` o si la
+ * librería altera su formato de salida. En ese caso TODOS los QR se marcarían
+ * como caducados. Es un falso positivo, y es la dirección correcta del error:
+ * avisa de más, nunca de menos.
+ */
+export async function qrMatchesCurrentSite(storedSvg: string, code: string): Promise<boolean> {
+  return storedSvg === (await renderQrSvg(code));
+}
+
+/** Estado del QR de un punto, descargando su SVG del bucket. */
+export async function qrStatusFor(point: {
+  code: string;
+  qr_asset_url: string | null;
+}): Promise<QrStatus> {
+  if (!point.qr_asset_url) return "missing";
+
+  const supabase = createAdminClient();
+  const { data } = await supabase.storage.from(BUCKET).download(point.qr_asset_url);
+  if (!data) return "unverifiable";
+
+  try {
+    return (await qrMatchesCurrentSite(await data.text(), point.code)) ? "ok" : "stale";
+  } catch {
+    // Si no se puede ni leer ni regenerar, no se afirma que esté bien.
+    return "unverifiable";
+  }
+}
+
+/**
  * Genera el SVG, lo sube al bucket y guarda la ruta en `capture_points`.
  *
  * Se llama DESPUÉS del alta, nunca dentro de ella: `create_capture_point()` es
@@ -82,7 +150,7 @@ export async function generateQr(
   let path: string;
 
   try {
-    svg = await QRCode.toString(formUrlFor(code), { type: "svg", ...QR_OPTIONS });
+    svg = await renderQrSvg(code);
     path = qrObjectPath(capturePointId);
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "No se pudo generar el QR." };

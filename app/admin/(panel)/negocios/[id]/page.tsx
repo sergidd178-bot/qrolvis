@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { getBusiness, listSectors } from "@/lib/db/businesses";
 import { listCapturePoints } from "@/lib/db/capturePoints";
 import { admin } from "@/lib/i18n/admin";
-import { formUrlFor, isProvisionalDomain, signedQrUrl, siteUrl } from "@/lib/qr";
+import { formUrlFor, isProvisionalDomain, qrStatusFor, signedQrUrl, siteUrl } from "@/lib/qr";
 import { updateBusinessAction } from "../actions";
 import { BusinessForm } from "../BusinessForm";
 import { CapturePoints } from "./CapturePoints";
@@ -48,12 +48,18 @@ export default async function EditBusinessPage({
 
   // Las miniaturas se firman en cada visita: el bucket es privado y la columna
   // guarda la ruta del objeto, no una URL, que caducaría.
+  //
+  // `qrStatusFor` descarga el SVG de cada punto para comprobar a dónde apunta de
+  // verdad. Cuesta una descarga por punto, en paralelo y de un par de KB. Es
+  // barato comparado con imprimir cartelería que no lleva a ninguna parte.
   const points = await Promise.all(
-    rawPoints.map(async (p) => ({
-      ...p,
-      qrUrl: p.qr_asset_url ? await signedQrUrl(p.qr_asset_url) : null,
-      formUrl: formUrlFor(p.code),
-    })),
+    rawPoints.map(async (p) => {
+      const [qrUrl, qrStatus] = await Promise.all([
+        p.qr_asset_url ? signedQrUrl(p.qr_asset_url) : null,
+        qrStatusFor(p),
+      ]);
+      return { ...p, qrUrl, qrStatus, formUrl: formUrlFor(p.code) };
+    }),
   );
 
   return (
