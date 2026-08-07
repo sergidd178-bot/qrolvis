@@ -4,8 +4,12 @@
  * JavaScript. Los `name` siguen siendo q_<uuid>, así que submitDimensions no
  * cambia.
  *
- * Paleta: #F8FAFC tarjeta, #FACC15 relleno de estrella, #BE7E04 contorno,
- * #22C55E botón, #1F2937 texto, #E5E7EB bordes, #6B7280 gris. */
+ * Paleta: #F9DBA5 fondo de página, #F8FAFC tarjeta, #FACC15 relleno de estrella,
+ * #BE7E04 contorno, #15803D botón, #1F2937 texto, #E5E7EB bordes.
+ *
+ * DOS GRISES, y no es un descuido. #6B7280 solo dentro de la tarjeta, donde mide
+ * 4,62:1. Lo que se apoya en el fondo de página va en #4B5563, porque el #6B7280
+ * ahí se queda en 3,62:1 y no llega al 4,5 exigido. */
 
 .screen {
   display: flex;
@@ -131,9 +135,10 @@
   color: #1f2937;
 }
 
+/* Fuera de la tarjeta: #4B5563 (5,65:1), no #6B7280 (3,62:1). */
 .optional {
   font-weight: 400;
-  color: #6b7280;
+  color: #4b5563;
 }
 
 .textarea {
@@ -160,8 +165,15 @@
   border-color: #2563eb;
 }
 
-/* Texto oscuro y no blanco: blanco sobre #22C55E da 2,28:1 y no pasa.
-   #1F2937 sobre el mismo verde da 6,44:1. */
+/* El verde bajó de #22C55E a #15803D, y con él el texto pasó de oscuro a blanco.
+ *
+ * Motivo: el borde del control tiene que separarse del fondo 3:1 (WCAG 1.4.11).
+ * #22C55E daba 1,70:1 sobre #F9DBA5 —y ya daba solo 2,28:1 sobre el blanco
+ * anterior, o sea que tampoco cumplía antes—. #15803D da 3,75:1.
+ *
+ * No hay ningún verde que cumpla las dos cosas con el texto oscuro: al oscurecer
+ * el fondo para separarlo de la página, el #1F2937 se queda en 2,93:1. Con el
+ * verde ya oscuro, el texto tiene que ser blanco: 5,02:1. */
 .submit {
   width: 100%;
   min-height: 48px;
@@ -169,19 +181,28 @@
   padding: 0 1rem;
   border: 0;
   border-radius: 12px;
-  background: #22c55e;
-  color: #1f2937;
+  background: #15803d;
+  color: #ffffff;
   font: inherit;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 150ms ease;
+  /* Rastro de espera: ver el bloque largo de screen1.module.css. El verde
+     oscurecido aguanta 800 ms tras soltar y luego se desvanece. */
+  transition:
+    transform 150ms ease,
+    background-color 600ms ease 800ms;
 }
 
 .submit:active {
   transform: scale(0.98);
+  /* #14532D mantiene el blanco a 9,11:1 y se separa del fondo 6,81:1. */
+  background: #14532d;
+  transition:
+    transform 150ms ease,
+    background-color 0ms;
 }
 
 .submit:focus-visible {
@@ -196,17 +217,24 @@
   text-align: center;
 }
 
+/* Fuera de la tarjeta: #4B5563 (5,65:1), no #6B7280 (3,62:1). */
 .skip {
   min-height: 44px;
   padding: 0.5rem 1rem;
   background: none;
   border: 0;
-  color: #6b7280;
+  color: #4b5563;
   font: inherit;
   font-size: 0.8125rem;
   text-decoration: underline;
   cursor: pointer;
   touch-action: manipulation;
+  transition: color 600ms ease 800ms;
+}
+
+.skip:active {
+  color: #1e40af;
+  transition: color 0ms;
 }
 
 .skip:focus-visible {
@@ -215,10 +243,23 @@
   border-radius: 8px;
 }
 
+/* Se conserva el rastro de espera y se quita la animación: el color aguanta los
+   mismos 800 ms y corta en seco, sin desvanecido ni escala. */
 @media (prefers-reduced-motion: reduce) {
-  .star svg,
-  .submit {
+  .star svg {
     transition: none;
+  }
+  .submit {
+    transition: background-color 0ms ease 800ms;
+  }
+  .submit:active {
+    transition: background-color 0ms;
+  }
+  .skip {
+    transition: color 0ms ease 800ms;
+  }
+  .skip:active {
+    transition: color 0ms;
   }
   .stars input:checked + label svg,
   .submit:active {

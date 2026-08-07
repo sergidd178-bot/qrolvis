@@ -4,8 +4,11 @@
  * :focus-visible no se pueden expresar en línea. Un módulo se extrae a hoja de
  * estilos y no añade JavaScript, así que no toca el criterio de D21.
  *
- * Paleta fijada: #FFFFFF fondo, #F8FAFC tarjeta, #2563EB azul, #1F2937 texto,
- * #E5E7EB bordes, #6B7280 gris neutro. */
+ * Paleta fijada: #F9DBA5 fondo de página, #F8FAFC tarjeta, #2563EB azul,
+ * #1F2937 texto, #E5E7EB bordes, #6B7280 gris neutro. El gris de esta hoja vive
+ * ENTERO dentro de la tarjeta, donde el fondo no cambió: mide 4,62:1 sobre
+ * #F8FAFC. Sobre el fondo de página solo daría 3,62:1, y por eso las pantallas
+ * 2 y 3 usan #4B5563 para lo que se apoya directamente en él. */
 
 .screen {
   /* dvh y no vh: en móvil la barra del navegador falsea vh y recorta la
@@ -24,9 +27,14 @@
  * el estado que la persona realmente ve no había color de acento, y por eso la
  * pantalla se leía apagada.
  *
- * El azul vive aquí y en ningún otro sitio en reposo. Fondo al 8 %: da 4,63:1
- * para el texto azul, por encima del 4,5 exigido. Al 12 % ya bajaría a 4,37 y
- * no pasaría. */
+ * El azul vive aquí y en ningún otro sitio en reposo.
+ *
+ * OJO con el tinte: es semitransparente, así que su color real lo pone el fondo
+ * de página. Sobre blanco la insignia quedaba en #EEF3FD y #2563EB medía 4,65:1.
+ * Sobre #F9DBA5 queda en #E8D1AB y ese mismo azul cae a 3,48:1, por debajo del
+ * 4,5 que pide un texto de 13 px. De ahí el azul más oscuro: #1E40AF da 5,87:1
+ * sobre la insignia compuesta. #1D4ED8 daba 4,51:1, que pasa por una centésima
+ * y se cae con cualquier retoque del fondo. */
 .business {
   align-self: center;
   margin: 0 0 1rem;
@@ -37,7 +45,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #2563eb;
+  color: #1e40af;
 }
 
 /* La pregunta es lo primero que debe leerse: quien escanea ya sabe en qué
@@ -203,6 +211,67 @@
   outline-offset: 2px;
 }
 
+/* RASTRO DE ESPERA.
+ *
+ * El problema: `:active` se quita al levantar el dedo, unos 100 ms después de
+ * tocar, pero el servidor tarda entre 400 y 600 ms más. Sin esto, la persona
+ * pulsa, el color desaparece y la pantalla se queda quieta sin decir nada.
+ *
+ * El truco es una transición ASIMÉTRICA. La ida no tiene duración: el color
+ * entra de golpe con `:active`. La vuelta la manda la regla base, que lleva
+ * `transition-delay`, así que al soltar el resaltado NO decae: se queda quieto
+ * 800 ms y solo entonces se desvanece en 600 ms. Da ~1,4 s de señal, de los
+ * cuales los primeros 800 ms son un estado sólido.
+ *
+ * Pasarse de duración es gratis —el documento nuevo lo reemplaza al llegar—,
+ * quedarse corto deja un hueco mudo. Por eso va largo.
+ *
+ * LÍMITES, para que nadie los descubra por sorpresa: esto no es un indicador de
+ * progreso, no es infinito, y si alguien aprieta y arrastra el dedo fuera del
+ * botón se dispara igual aunque no haya enviado nada. Un indicador honesto y
+ * persistente exige JavaScript, y eso reabriría D21 y D22.
+ *
+ * Solo en dispositivos sin puntero, que son los que no tienen `:hover`. Con
+ * ratón, el mismo retardo dejaría el resaltado encendido 1,4 s después de
+ * apartar el cursor, que se lee como un fallo. */
+@media (hover: none) {
+  .option {
+    transition: color 600ms ease 800ms;
+  }
+
+  .iconBox {
+    transition:
+      background-color 600ms ease 800ms,
+      box-shadow 600ms ease 800ms,
+      transform 150ms ease;
+  }
+
+  .label {
+    transition: color 600ms ease 800ms;
+  }
+
+  .option:active,
+  .option:active .label {
+    transition: color 0ms;
+  }
+
+  .option:active .iconBox {
+    transition:
+      background-color 0ms,
+      box-shadow 0ms,
+      transform 150ms ease;
+    /* Sube del 8 % al 14 %: en reposo el 8 % es el tinte de la insignia, y aquí
+       hace falta que se distinga de un elemento decorativo. */
+    background: rgba(37, 99, 235, 0.14);
+    /* El relleno NO basta como indicador de estado: al 14 % mide 1,21:1 contra
+       la tarjeta, muy por debajo del 3:1 que WCAG 1.4.11 pide para identificar
+       el estado de un control. El anillo es el que lleva el contraste: #2563EB
+       da 4,94:1. Va `inset` para no desplazar nada y para no chocar con el
+       contorno de :focus-visible, que va por fuera con offset. */
+    box-shadow: inset 0 0 0 2px #2563eb;
+  }
+}
+
 @media (hover: hover) {
   .option:hover {
     color: #2563eb;
@@ -215,6 +284,10 @@
   }
 }
 
+/* Con movimiento reducido se conserva el RASTRO pero no la animación: el color
+   aguanta los mismos 800 ms y luego corta en seco, sin desvanecido y sin escala.
+   Reducir movimiento va de movimiento, no de color, y quitar la señal de espera
+   dejaría a estas personas peor informadas que al resto. */
 @media (prefers-reduced-motion: reduce) {
   .option,
   .iconBox,
@@ -223,5 +296,27 @@
   }
   .option:active .iconBox {
     transform: none;
+  }
+
+  @media (hover: none) {
+    .option,
+    .label {
+      transition: color 0ms ease 800ms;
+    }
+    .iconBox {
+      transition:
+        background-color 0ms ease 800ms,
+        box-shadow 0ms ease 800ms;
+    }
+    .option:active,
+    .option:active .label {
+      transition: color 0ms;
+    }
+    .option:active .iconBox {
+      transition:
+        background-color 0ms,
+        box-shadow 0ms;
+      transform: none;
+    }
   }
 }

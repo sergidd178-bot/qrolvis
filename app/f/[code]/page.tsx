@@ -26,6 +26,7 @@ import {
   type Language,
 } from "@/lib/i18n";
 import { skipDimensions, startResponse, submitDimensions } from "./actions";
+import shell from "./shell.module.css";
 import styles from "./screen1.module.css";
 import s2 from "./screen2.module.css";
 import s3 from "./screen3.module.css";
@@ -81,7 +82,7 @@ function Shell({
 }) {
   const other: Language = language === "ca" ? "es" : "ca";
   return (
-    <main style={{ padding: "1.5rem", maxWidth: "32rem", margin: "0 auto" }}>
+    <main className={shell.shell}>
       {children}
       <footer style={{ marginTop: "2rem", fontSize: "0.75rem", textAlign: "center" }}>
         {/* Los dos enlaces conservan s y r para no perder la respuesta en curso. */}

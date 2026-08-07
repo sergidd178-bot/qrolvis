@@ -40,18 +40,24 @@
 }
 
 /* Cuerpo en gris y título en oscuro: la jerarquía lleva la mirada al botón sin
-   que el botón tenga que gritar. Ancho limitado por medida de lectura. */
+   que el botón tenga que gritar. Ancho limitado por medida de lectura.
+
+   #4B5563 y no #6B7280: esta pantalla no tiene tarjeta, así que el párrafo se
+   apoya en el fondo de página, donde el gris claro daría 3,62:1 y no llega al
+   4,5 de un texto de 16 px. #4B5563 da 5,65:1. */
 .body {
   margin: 0 0 2rem;
   max-width: 34ch;
   font-size: 1rem;
   line-height: 1.55;
-  color: #6b7280;
+  color: #4b5563;
   text-wrap: pretty;
 }
 
-/* Texto #1F2937 y no blanco: blanco sobre #22C55E da 2,28:1 y no pasa; el
-   oscuro da 6,44:1. */
+/* Verde #15803D con texto blanco, igual que el envío de la pantalla 2.
+   El borde del control se separa del fondo 3,75:1 (WCAG 1.4.11 pide 3:1) y el
+   blanco encima da 5,02:1. El #22C55E anterior daba 1,70:1 contra este fondo, y
+   solo 2,28:1 contra el blanco de antes: tampoco cumplía. */
 .button {
   display: flex;
   align-items: center;
@@ -61,14 +67,16 @@
   min-height: 52px;
   padding: 0 1rem;
   border-radius: 12px;
-  background: #22c55e;
-  color: #1f2937;
+  background: #15803d;
+  color: #ffffff;
   font-size: 1rem;
   font-weight: 700;
   text-decoration: none;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 150ms ease;
+  transition:
+    transform 150ms ease,
+    background-color 600ms ease 800ms;
 }
 
 /* La estrella es la misma de la pantalla 2, en contorno. Dice "reseña" sin
@@ -77,11 +85,17 @@
 .button svg {
   flex: none;
   fill: none;
-  stroke: #1f2937;
+  stroke: #ffffff;
 }
 
+/* Aquí el rastro cubre la espera de Google, que es una pestaña nueva y puede
+   tardar más que nuestro servidor. */
 .button:active {
   transform: scale(0.98);
+  background: #14532d;
+  transition:
+    transform 150ms ease,
+    background-color 0ms;
 }
 
 .button:focus-visible {
@@ -103,11 +117,13 @@
   border: 0;
 }
 
+/* Se conserva el rastro y se quita la animación. */
 @media (prefers-reduced-motion: reduce) {
   .button {
-    transition: none;
+    transition: background-color 0ms ease 800ms;
   }
   .button:active {
     transform: none;
+    transition: background-color 0ms;
   }
 }

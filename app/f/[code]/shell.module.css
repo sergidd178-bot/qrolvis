@@ -1,0 +1,29 @@
+/* Contenedor y fondo de página del formulario público.
+ *
+ * El color va en `html` y no en `body` ni en el contenedor: en móvil el rebote
+ * elástico descubre el lienzo por encima y por debajo del documento, y si el
+ * color vive más abajo aparece una franja blanca al arrastrar.
+ *
+ * NO puede ir en `globals.css`: esa hoja la comparte `/admin`, que sigue en
+ * blanco. Este módulo solo lo carga `/f/[code]`, así que el color no se escapa
+ * de aquí. Si algún día se importa desde otro sitio, se lo lleva puesto.
+ *
+ * Paleta de las tres pantallas, con el contraste ya verificado sobre este fondo:
+ *   #F9DBA5  fondo de página
+ *   #F8FAFC  tarjeta
+ *   #1F2937  texto principal      10,98:1 sobre el fondo
+ *   #4B5563  texto secundario      5,65:1 sobre el fondo
+ *   #6B7280  gris DENTRO de la tarjeta únicamente, 4,62:1 sobre #F8FAFC
+ *   #1E40AF  azul de acento sobre el fondo y sobre la insignia
+ *   #2563EB  azul de acento dentro de la tarjeta y contornos de foco
+ *   #15803D  verde de acción       3,75:1 sobre el fondo, blanco encima 5,02:1
+ *   #E5E7EB  bordes */
+:global(html) {
+  background: #f9dba5;
+}
+
+.shell {
+  padding: 1.5rem;
+  max-width: 32rem;
+  margin: 0 auto;
+}
