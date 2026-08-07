@@ -1,0 +1,140 @@
+# Evidencia de rendimiento · región de las funciones y latencia por interacción
+
+Medición del coste de cada pulsación en `/f/[code]`, y del efecto de mover las
+funciones de Vercel de `iad1` (Washington) a `fra1` (Frankfurt), junto a
+Supabase.
+
+**Estado: decidido (D26).** Ver `docs/08-decisiones.md`.
+
+Esto complementa a `rendimiento-f-code.md`, que midió la **primera carga** (D21,
+D22). Aquí se mide algo distinto: el tiempo de **cada interacción** con el
+formulario, que aquel documento no cubría porque midió contra `localhost`, donde
+el tramo de red vale cero.
+
+## Condiciones
+
+| | |
+|---|---|
+| Fecha | 2026-08-07 |
+| Origen de las peticiones | Girona, conexión fija |
+| Método | `curl -w %{time_starttransfer}`, medianas de n=6 a n=10 |
+| Objetivo | `https://www.qrolvis.com/f/5JHT8RJ2` |
+| Lighthouse | 13.4.1, `mobile`, `simulate`, 150 ms RTT, 1638,4 kbps, CPU ×4 |
+
+Las pantallas 2 y 3 se midieron con un `r` inexistente: ejercita las mismas
+consultas sin crear filas.
+
+## El diagnóstico
+
+`X-Vercel-Id: cdg1::iad1::…` — el edge era París pero la función se ejecutaba en
+**Washington**, mientras la base de datos está en Frankfurt. Cada consulta
+cruzaba el Atlántico.
+
+Coste de una consulta a Supabase, en caliente:
+
+| Origen | Tiempo | Cómo se midió |
+|---|---|---|
+| Girona | **86 ms** | 8 consultas reutilizando la misma conexión TLS (`num_connects=0`) |
+| `iad1` | **154 ms** | mediana pantalla 3 − pantalla 1 (2 consultas vs 1), n=10 |
+| `fra1` | **65-72 ms** | lo mismo, tras el cambio |
+
+Con ~50 ms de PostgREST y Postgres, los 154 ms desde `iad1` son ese
+procesamiento más ~90 ms de ida y vuelta transatlántica.
+
+## Resultado del cambio de región
+
+| Tramo | `iad1` | `fra1` | Δ |
+|---|---|---|---|
+| Edge cacheado, sin función *(control)* | 146 ms | 148 ms | +2 ms |
+| GET pantalla 1 (1 consulta) | 381 ms | **215 ms** | −44 % |
+| GET pantalla 2 (2 consultas) | 675 ms | **238 ms** | −65 % |
+| GET pantalla 3 (2 consultas) | 535 ms | **280 ms** | −48 % |
+| POST código inexistente (1 consulta) | 413 ms | **237 ms** | −43 % |
+| POST pantalla 1 (4 consultas + trigger) | 1.188 ms | **453 ms** | −62 % |
+| **Ciclo POST + 303 + GET** | **~1.420 ms** | **558 ms** | **−61 %** |
+
+El control es lo que da validez al resto: el edge cacheado no se mueve
+(146 → 148 ms), así que la mejora está toda en el camino de la función y no es
+deriva de la red ni de la medición.
+
+Se comprobó la región con 15 muestras: 15 de 15 en `cdg1::fra1::`.
+
+## Lighthouse
+
+`/f/[code]`, tres ejecuciones tras el cambio: FCP 981 / 838 / 864 ms.
+
+| Métrica | `iad1` | `fra1` (mediana) | Δ |
+|---|---|---|---|
+| First Contentful Paint | 869 ms | **864 ms** | −5 ms |
+| Largest Contentful Paint | 869 ms | 864 ms | −5 ms |
+| Speed Index | 1.240 ms | **864 ms** | −376 ms |
+| Total Blocking Time | 81 ms | 62-96 ms | ruido |
+| Puntuación | 100 | 99-100 | — |
+
+`/admin/login`: FCP 848 → 846 ms. Speed Index 2.978 → 846 ms, pero es **n=1
+antes y n=1 después**, y la medición previa pudo caer en un arranque en frío: no
+es una cifra firme.
+
+**El FCP no se mueve, y es lo esperable.** Lighthouse en modo `simulate`
+recompone los tiempos sobre un modelo de red, y los ~160 ms de servidor
+ahorrados quedan absorbidos por el coste simulado de descarga y de CPU. Es lo
+que ya estableció D21: el suelo del FCP es el runtime de App Router, no el
+trabajo de servidor.
+
+**El criterio de R9 se sigue cumpliendo** con 864 ms de mediana. Aviso: una de
+las tres ejecuciones dio **981 ms**. El margen es más estrecho de lo que sugiere
+la mediana, y conviene volver a medir ante cualquier cambio en la ruta crítica,
+como ya exige D22.
+
+## Deduplicación del envío de la pantalla 2
+
+Aplicada después del cambio de región, ya sobre `fra1`. El envío hacía **ocho**
+idas y vueltas para lo que necesita cuatro: cargaba la respuesta dos veces,
+actualizaba `responses` dos veces y llegaba al negocio dando un rodeo por
+`capture_points` cuando `responses.business_id` ya lo tiene.
+
+| Acción | Antes | Después |
+|---|---|---|
+| Envío de pantalla 2 con dimensiones | 8 consultas | **4** |
+| Envío de pantalla 2 sin dimensiones | 8 consultas | **2** |
+| Enlace de saltar | 4 consultas | **2** |
+
+Medición del POST de envío de la pantalla 2, n=6, ambas sobre `fra1`:
+
+| | Mediana | Rango |
+|---|---|---|
+| Antes | 750 ms | 662-814 ms |
+| Después | **429 ms** | 418-447 ms |
+
+−321 ms (−43 %). La dispersión también se estrecha: menos viajes de red, menos
+varianza.
+
+Lighthouse tras el cambio, tres ejecuciones: FCP 954 / 852 / 841 ms, mediana
+**852 ms**. Sin regresión respecto a los 864 ms anteriores; el criterio de R9 se
+mantiene.
+
+## Archivos
+
+- `lighthouse-f-code-iad1.report.json` — antes del cambio de región
+- `lighthouse-f-code-fra1.report.json` — después del cambio de región
+- `lighthouse-f-code-fra1-dedup.report.json` — tras deduplicar la pantalla 2
+- `lighthouse-admin-login-iad1.report.json` — antes
+- `lighthouse-admin-login-fra1.report.json` — después
+
+## Reproducir
+
+```
+# region de ejecucion
+curl -s -o /dev/null -D - https://www.qrolvis.com/f/<codigo> | grep -i x-vercel-id
+
+# latencia por pantalla (el `r` falso no crea filas)
+curl -s -o /dev/null -w '%{time_starttransfer}\n' https://www.qrolvis.com/f/<codigo>
+curl -s -o /dev/null -w '%{time_starttransfer}\n' 'https://www.qrolvis.com/f/<codigo>?s=2&r=00000000-0000-4000-8000-000000000000'
+
+# coste de una consulta a Supabase reutilizando conexion
+curl -s -o /dev/null -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
+  -w '%{time_starttransfer} %{num_connects}\n' "$URL" "$URL" "$URL"
+```
+
+Medir el POST **crea respuestas reales**. Las de estas mediciones se borraron
+después; si repites, acuérdate de limpiarlas.
