@@ -110,7 +110,7 @@ const dictionary: Record<Language, Dictionary> = {
 
       p7Title: "7. Contacto",
       p7Body:
-        "Para cualquier duda sobre este aviso: [PENDIENTE DE DEFINIR]. Si tu consulta es sobre la encuesta en sí, puedes dirigirte también a {business}, que es el responsable.",
+        "Para cualquier duda sobre este aviso: privacidad@qrolvis.com. Si tu consulta es sobre la encuesta en sí, puedes dirigirte también a {business}, que es el responsable.",
     },
   },
   ca: {
@@ -163,7 +163,7 @@ const dictionary: Record<Language, Dictionary> = {
 
       p7Title: "7. Contacte",
       p7Body:
-        "Per a qualsevol dubte sobre aquest avís: [PENDENT DE DEFINIR]. Si la teva consulta és sobre l'enquesta en si, també pots adreçar-te a {business}, que és el responsable.",
+        "Per a qualsevol dubte sobre aquest avís: privacidad@qrolvis.com. Si la teva consulta és sobre l'enquesta en si, també pots adreçar-te a {business}, que és el responsable.",
     },
   },
 };
