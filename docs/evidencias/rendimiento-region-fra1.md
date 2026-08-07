@@ -113,11 +113,35 @@ Lighthouse tras el cambio, tres ejecuciones: FCP 954 / 852 / 841 ms, mediana
 **852 ms**. Sin regresión respecto a los 864 ms anteriores; el criterio de R9 se
 mantiene.
 
+## Rediseño de color y rastro de espera
+
+Cambio posterior, no de rendimiento sino visual, pero medido porque toca la ruta
+crítica y **D22 obliga a volver a medir**: fondo de página de blanco a `#F9DBA5`,
+tres colores de texto corregidos para mantener AA, y un indicador de espera en
+CSS que aguanta 800 ms tras soltar el botón y se desvanece en 600 ms.
+
+Coste en peso: la hoja inlineada pasa de **8.093 a 9.698 bytes** (+20 %), por las
+reglas del rastro y el módulo nuevo del contenedor.
+
+| | FCP mediana | Referencia | ¿Dentro de R9? |
+|---|---|---|---|
+| Local (`next start`, n=3: 719/687/689) | **689 ms** | 684 ms de D22 | **sí** |
+| Producción (n=3: 963/834/838) | **838 ms** | 852 ms del apartado anterior | **sí** |
+
+Ninguna de las dos medidas se mueve más allá del ruido: +5 ms en local y −14 ms
+en producción. **El criterio de R9 se mantiene tras el cambio de fondo y el
+rastro de espera**, que es lo que había que comprobar.
+
+Se repite el patrón ya visto: la primera de las tres ejecuciones sale alta (963,
+981 y 954 ms en las tres tandas de producción de hoy) y las dos siguientes se
+estabilizan. Conviene seguir leyendo la mediana de tres y no una sola ejecución.
+
 ## Archivos
 
 - `lighthouse-f-code-iad1.report.json` — antes del cambio de región
 - `lighthouse-f-code-fra1.report.json` — después del cambio de región
 - `lighthouse-f-code-fra1-dedup.report.json` — tras deduplicar la pantalla 2
+- `lighthouse-f-code-fra1-color.report.json` — tras el rediseño de color
 - `lighthouse-admin-login-iad1.report.json` — antes
 - `lighthouse-admin-login-fra1.report.json` — después
 
