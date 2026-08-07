@@ -147,16 +147,27 @@ export async function readOverallRating(responseId: string): Promise<number | nu
   return data?.overall_rating ?? null;
 }
 
+/** Lo que las pantallas 2 y 3 necesitan para escribir, resuelto de una vez. */
+type UpdatableResponse = {
+  questionSetId: string;
+  googleReviewUrl: string | null;
+};
+
 /**
  * Comprueba que la respuesta se puede seguir tocando: existe, se creó hace menos
  * de PARTIAL_WINDOW_MINUTES y sigue en partial (docs/02).
+ *
+ * Trae el negocio EMBEBIDO en la misma consulta. Antes se llegaba a él dando un
+ * rodeo —respuesta, punto de captación, negocio—, pero `responses.business_id`
+ * ya lo tiene: lo rellena el trigger al insertar. Eran dos viajes de red para un
+ * dato que estaba a mano, y con la base en Frankfurt cada viaje se nota.
  */
-async function loadUpdatable(responseId: string) {
+async function loadUpdatable(responseId: string): Promise<UpdatableResponse | null> {
   const supabase = createAdminClient();
 
   const { data } = await supabase
     .from("responses")
-    .select("id, question_set_id, capture_point_id, submitted_at, completeness")
+    .select("question_set_id, submitted_at, completeness, businesses(google_review_url)")
     .eq("id", responseId)
     .maybeSingle();
 
@@ -165,30 +176,34 @@ async function loadUpdatable(responseId: string) {
   const age = Date.now() - new Date(data.submitted_at).getTime();
   if (age > PARTIAL_WINDOW_MINUTES * 60_000) return null;
 
-  return data;
+  return {
+    questionSetId: data.question_set_id,
+    googleReviewUrl: data.businesses?.google_review_url ?? null,
+  };
 }
 
 /**
- * Pantalla 2. Añade las valoraciones por dimensión y el comentario.
+ * Guarda las valoraciones por dimensión. Devuelve false si el lote falla.
  *
  * Las preguntas se filtran contra el conjunto al que apunta la respuesta: un
  * cliente no puede colgar una respuesta a una pregunta de otro sector o de otra
  * versión del conjunto.
+ *
+ * Sin dimensiones no consulta nada: quien salta la pantalla 2 no paga el viaje.
  */
-export async function addDimensionAnswers(
+async function writeAnswers(
   responseId: string,
+  questionSetId: string,
   answers: DimensionAnswer[],
-  comment: string | null,
-): Promise<UpdateResult> {
-  const response = await loadUpdatable(responseId);
-  if (!response) return { status: "not_updatable" };
+): Promise<boolean> {
+  if (answers.length === 0) return true;
 
   const supabase = createAdminClient();
 
   const { data: allowed } = await supabase
     .from("questions")
     .select("id")
-    .eq("question_set_id", response.question_set_id)
+    .eq("question_set_id", questionSetId)
     .eq("type", "rating");
 
   const allowedIds = new Set((allowed ?? []).map((q) => q.id));
@@ -202,66 +217,110 @@ export async function addDimensionAnswers(
       rating_value: a.ratingValue,
     }));
 
-  if (rows.length > 0) {
-    // upsert y no insert: si alguien reenvía la pantalla 2, la restricción
-    // unique (response_id, question_id) haría fallar el lote entero.
-    const { error } = await supabase
-      .from("answers")
-      .upsert(rows, { onConflict: "response_id,question_id" });
+  if (rows.length === 0) return true;
 
-    if (error) return { status: "not_updatable" };
-  }
+  // upsert y no insert: si alguien reenvía la pantalla 2, la restricción
+  // unique (response_id, question_id) haría fallar el lote entero.
+  const { error } = await supabase
+    .from("answers")
+    .upsert(rows, { onConflict: "response_id,question_id" });
 
-  const trimmed = comment?.trim();
-  const { error: updateError } = await supabase
-    .from("responses")
-    .update({ comment: trimmed ? trimmed : null })
-    .eq("id", responseId);
-
-  if (updateError) return { status: "not_updatable" };
-
-  return { status: "ok" };
+  return !error;
 }
 
 /**
- * Pantalla 3. Marca la respuesta como completa.
+ * Escritura final de la respuesta.
+ *
+ * `comment` a `undefined` significa "no lo toques", que es lo que necesita el
+ * enlace de saltar; `null` significa "déjalo vacío".
  *
  * google_link_shown lo decide el servidor a partir de si el negocio tiene URL de
  * Google, no el cliente. Es el registro que permite demostrar que no hay
  * filtrado de reseñas (docs/03, "Cumplimiento de las políticas de Google"), así
  * que no puede depender de lo que diga el navegador.
  */
-export async function completeResponse(responseId: string): Promise<UpdateResult> {
-  const response = await loadUpdatable(responseId);
-  if (!response) return { status: "not_updatable" };
-
+async function finish(
+  responseId: string,
+  response: UpdatableResponse,
+  comment: string | null | undefined,
+): Promise<UpdateResult> {
   const supabase = createAdminClient();
-
-  const { data: capturePoint } = await supabase
-    .from("capture_points")
-    .select("business_id")
-    .eq("id", response.capture_point_id)
-    .maybeSingle();
-
-  let googleLinkShown = false;
-  if (capturePoint) {
-    const { data: business } = await supabase
-      .from("businesses")
-      .select("google_review_url")
-      .eq("id", capturePoint.business_id)
-      .maybeSingle();
-
-    googleLinkShown = Boolean(business?.google_review_url);
-  }
 
   const { error } = await supabase
     .from("responses")
     .update({
       completeness: "complete",
       completed_at: new Date().toISOString(),
-      google_link_shown: googleLinkShown,
+      google_link_shown: Boolean(response.googleReviewUrl),
+      ...(comment !== undefined ? { comment } : {}),
     })
     .eq("id", responseId);
 
   return error ? { status: "not_updatable" } : { status: "ok" };
+}
+
+/**
+ * Guarda dimensiones y comentario SIN cerrar la respuesta.
+ *
+ * La usa `PATCH /api/responses/[id]` con `step="answers"`, que separa guardar de
+ * cerrar. El formulario no pasa por aquí: usa `saveAnswersAndComplete()`, que
+ * hace las dos cosas en una pasada.
+ */
+export async function addDimensionAnswers(
+  responseId: string,
+  answers: DimensionAnswer[],
+  comment: string | null,
+): Promise<UpdateResult> {
+  const response = await loadUpdatable(responseId);
+  if (!response) return { status: "not_updatable" };
+
+  if (!(await writeAnswers(responseId, response.questionSetId, answers))) {
+    return { status: "not_updatable" };
+  }
+
+  const supabase = createAdminClient();
+  const trimmed = comment?.trim();
+
+  const { error } = await supabase
+    .from("responses")
+    .update({ comment: trimmed ? trimmed : null })
+    .eq("id", responseId);
+
+  return error ? { status: "not_updatable" } : { status: "ok" };
+}
+
+/**
+ * Envío de la pantalla 2: guarda dimensiones y comentario Y cierra la respuesta.
+ *
+ * Existe porque es UNA sola acción de la persona, y hacerla con dos llamadas
+ * costaba el doble de viajes a la base: cargaba la respuesta dos veces y la
+ * actualizaba dos veces. Ocho idas y vueltas para lo que necesita cuatro, o dos
+ * si no hay dimensiones que guardar.
+ */
+export async function saveAnswersAndComplete(
+  responseId: string,
+  answers: DimensionAnswer[],
+  comment: string | null,
+): Promise<UpdateResult> {
+  const response = await loadUpdatable(responseId);
+  if (!response) return { status: "not_updatable" };
+
+  if (!(await writeAnswers(responseId, response.questionSetId, answers))) {
+    return { status: "not_updatable" };
+  }
+
+  const trimmed = comment?.trim();
+  return finish(responseId, response, trimmed ? trimmed : null);
+}
+
+/**
+ * Pantalla 3. Marca la respuesta como completa sin tocar el comentario.
+ *
+ * La usa el enlace de saltar y el `step="complete"` de la API.
+ */
+export async function completeResponse(responseId: string): Promise<UpdateResult> {
+  const response = await loadUpdatable(responseId);
+  if (!response) return { status: "not_updatable" };
+
+  return finish(responseId, response, undefined);
 }

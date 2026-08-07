@@ -8,10 +8,10 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import {
-  addDimensionAnswers,
   completeResponse,
   createResponse,
   DEVICE_WINDOW_HOURS,
+  saveAnswersAndComplete,
   type DimensionAnswer,
 } from "@/lib/db/responses";
 import { DEFAULT_LANGUAGE, isLanguage, type Language } from "@/lib/i18n";
@@ -91,9 +91,10 @@ export async function submitDimensions(formData: FormData) {
     }
   }
 
+  // Una sola llamada, no dos: guardar y cerrar es una única acción de la
+  // persona, y separarlas duplicaba las idas y vueltas a la base.
   const comment = formData.get("comment");
-  await addDimensionAnswers(responseId, answers, typeof comment === "string" ? comment : null);
-  await completeResponse(responseId);
+  await saveAnswersAndComplete(responseId, answers, typeof comment === "string" ? comment : null);
 
   const params = new URLSearchParams();
   keepLanguage(params, language);
