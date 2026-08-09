@@ -180,6 +180,12 @@ problemas en el formulario.
 
 Una sola página si es posible, dos como máximo. El dueño de un bar no lee ocho páginas.
 
+**Aclaración (D29).** Esta longitud es un objetivo, no un límite duro, y cede ante la
+integridad de los comentarios. Cuando el Bloque 3 no quepa, el informe crece: los
+comentarios van **todos y enteros**, sin truncar y sin un «y N comentarios más» al
+final, que sería un recorte disfrazado. No es una contradicción sin resolver: está
+decidido en `docs/08-decisiones.md`.
+
 ### Portada
 
 - Nombre del negocio, mes y año

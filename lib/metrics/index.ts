@@ -13,6 +13,14 @@ export type MonthlyMetrics = PeriodMetrics & {
   month: string;
   businessId: string;
   comparativa: MetricState<DeltaDimension[]>;
+  /**
+   * Volumen del mes anterior, en crudo.
+   *
+   * No es una métrica publicable —no sale en el informe— sino el dato que
+   * necesita la tercera regla del candidato a recomendación (docs/05 §3,
+   * Bloque 5): "volumen de respuestas si ha caído más de un 30%".
+   */
+  volumenAnterior: number;
 };
 
 /**
@@ -39,5 +47,6 @@ export async function monthlyMetrics(
     businessId,
     ...computePeriod(ahora.responses, ahora.answers),
     comparativa: comparativa(ahora.responses, ahora.answers, antes.responses, antes.answers),
+    volumenAnterior: antes.responses.length,
   };
 }
