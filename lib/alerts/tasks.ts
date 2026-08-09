@@ -103,9 +103,10 @@ async function dispatchPending(report: CronReport): Promise<void> {
  *
  * Se autorrepara: si falla la pasada de las 09:00, la de las 09:10 lo manda.
  */
-async function sendDigests(report: CronReport): Promise<void> {
-  if (localHour() < DIGEST_HOUR_LOCAL) return;
-
+export async function sendDigests(report: CronReport): Promise<void> {
+  // La puerta horaria NO vive aquí, sino en `runAlertTasks`. Esta función hace
+  // el trabajo; quien la llama decide cuándo toca. Así se puede ejercitar el
+  // envío sin esperar a que den las nueve.
   const supabase = createAdminClient();
 
   // Solo días ya cerrados: el inicio del día natural de HOY en Madrid es el
@@ -168,9 +169,13 @@ async function sendDigests(report: CronReport): Promise<void> {
     const ids = filas.map((f) => f.id);
 
     if (result.ok) {
+      // TODAS las filas del grupo comparten el mismo identificador, porque las
+      // ha llevado UN solo correo. No es un descuido ni un duplicado: es lo que
+      // permite saber después qué alertas viajaron en qué resumen. Por eso la
+      // columna no lleva restricción de unicidad.
       await supabase
         .from("alerts")
-        .update({ status: "sent", sent_at: new Date().toISOString() })
+        .update({ status: "sent", sent_at: new Date().toISOString(), message_id: result.id })
         .in("id", ids);
       report.digestsSent++;
     } else {
@@ -204,7 +209,12 @@ export async function runAlertTasks(): Promise<CronReport> {
   };
 
   await dispatchPending(report);
-  await sendDigests(report);
+
+  // El resumen solo a partir de las 09:00 de Madrid. Antes de esa hora las
+  // retenidas siguen esperando: nadie lee el correo del negocio a las 00:30.
+  if (localHour() >= DIGEST_HOUR_LOCAL) {
+    await sendDigests(report);
+  }
 
   return report;
 }

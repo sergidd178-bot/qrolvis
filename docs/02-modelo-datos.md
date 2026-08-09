@@ -259,11 +259,29 @@ create table alerts (
   status       text not null default 'pending'
                check (status in ('pending', 'sent', 'failed', 'not_applicable')),
   error_detail text,
+  message_id   text,                          -- id del correo en Resend
   created_at   timestamptz not null default now(),
   sent_at      timestamptz,
   unique (response_id)
 );
 
+-- `message_id`: identificador que devuelve Resend al ACEPTAR el envío. Se guarda
+-- al marcar la alerta como `sent`.
+--
+-- Que exista NO significa que el correo se haya entregado. `sent` solo dice que
+-- la API de Resend lo aceptó, y son cosas distintas: ya ha ocurrido en producción
+-- que un aviso quedara en `sent` y nunca llegara a la bandeja. Este campo es lo
+-- que permitirá consultar el estado real de entrega —delivered, bounced,
+-- complained— por API o por webhook. Esa consulta todavía no está implementada.
+--
+-- Es NULL cuando la fila es anterior a la migración que añadió la columna, cuando
+-- la alerta no ha producido correo (`pending`, `failed`, `not_applicable`), o si
+-- Resend aceptara un envío sin devolver identificador.
+--
+-- NO es único, a propósito: el resumen diario es UN correo que cubre N alertas, y
+-- esas N filas comparten su identificador. Eso es justo lo que permite saber qué
+-- alertas viajaron en qué resumen.
+--
 -- Estados:
 --   pending         registrada, aún sin enviar. Incluye las retenidas para el
 --                   resumen diario al superar el tope de 5 por negocio y día.

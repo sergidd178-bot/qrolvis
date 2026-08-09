@@ -205,9 +205,16 @@ export async function processAlert(responseId: string): Promise<AlertOutcome> {
     return { status: "failed", error: result.error };
   }
 
+  // Se guarda el identificador que devuelve Resend. `sent` solo significa que
+  // Resend ACEPTÓ el correo, no que llegara: ya ha pasado en producción que un
+  // aviso quedara en `sent` y nunca apareciera en la bandeja. Sin este dato no
+  // hay forma de averiguar después qué le pasó a ese envío concreto.
+  //
+  // Guardarlo no consulta nada por sí solo. Es la materia prima para cuando se
+  // consulte el estado real de entrega, que es trabajo aparte.
   await supabase
     .from("alerts")
-    .update({ status: "sent", sent_at: new Date().toISOString() })
+    .update({ status: "sent", sent_at: new Date().toISOString(), message_id: result.id })
     .eq("id", alert.id);
 
   await checkWeeklyOperatorNotice(response.business_id, business.name);
