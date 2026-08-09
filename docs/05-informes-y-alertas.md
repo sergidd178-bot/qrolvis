@@ -19,6 +19,7 @@ explicativo, **nunca un número**.
 | Volumen de respuestas | 1 | Siempre se muestra |
 | Distribución de valoración global | 10 | `INSUFICIENTE` |
 | Porcentaje de detractores | 10 | `INSUFICIENTE` |
+| Porcentaje de promotores | 10 | `INSUFICIENTE` |
 | Puntuación por dimensión | 10 por dimensión | `INSUFICIENTE` para esa dimensión |
 | Comparativa con el periodo anterior | 20 en **ambos** periodos | Se omite la comparativa |
 | Desglose por punto de captación | 15 por punto | Se omite ese punto |
@@ -98,6 +99,8 @@ promotores_pct = n(5) / N * 100
 ```
 
 Solo cuenta el 5. Un 4 es un cliente satisfecho, no un prescriptor.
+
+Requiere n ≥ 10, igual que detractores: son la misma escala leída por los dos extremos.
 
 ### 2.5 Media global
 
@@ -285,7 +288,11 @@ Casos que deben estar cubiertos:
 - `N = 0`: todas las métricas devuelven `INSUFICIENTE`, ninguna división por cero
 - `N = 9` y `N = 10`: verificar el corte exacto de la muestra mínima
 - Distribución bimodal (mitad 1, mitad 5): la media es 3 y los detractores 50%
-- Todas las respuestas iguales: la desviación es 0 y no rompe nada
+- Todas las respuestas iguales: no rompe nada. La media es ese valor, la
+  distribución se concentra en él y los detractores salen 0 % o 100 % según
+  cuál sea. **Nota:** una versión anterior de este caso hablaba de "la desviación",
+  pero la desviación típica **no es una métrica de este documento**: no está
+  definida en la sección 2 y la capa de cálculo no la implementa.
 - Respuestas `partial` mezcladas con `complete`: cada métrica usa el conjunto correcto
 - Dimensión sin ninguna respuesta: `INSUFICIENTE` para esa dimensión, el resto se calcula
 - Periodo anterior inexistente (primer mes del cliente): sin comparativa, sin error

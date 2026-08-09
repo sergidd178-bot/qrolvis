@@ -22,8 +22,7 @@
 export type MetricState<T> =
   | { readonly status: "OK"; readonly value: T }
   | { readonly status: "INSUFICIENTE"; readonly n: number; readonly required: number }
-  | { readonly status: "OMITIDA"; readonly n: number; readonly required: number }
-  | { readonly status: "SIN_DEFINIR"; readonly motivo: string };
+  | { readonly status: "OMITIDA"; readonly n: number; readonly required: number };
 
 export function ok<T>(value: T): MetricState<T> {
   return { status: "OK", value };
@@ -38,21 +37,6 @@ export function omitted<T>(n: number, required: number): MetricState<T> {
 }
 
 /**
- * Cuarto estado, y no es de R-M1: marca una métrica que docs/05 define pero cuyo
- * umbral de muestra mínima no fija.
- *
- * Existe porque la alternativa era peor. Poner un umbral inventado sería violar
- * R1, y meter un número falso —un 0, un NaN— en la estructura sería exactamente
- * el error que toda esta capa existe para impedir. Un estado propio dice la
- * verdad: "esto no se puede publicar todavía y aquí está el motivo".
- *
- * Debería desaparecer en cuanto el documento se complete.
- */
-export function undefinedThreshold<T>(motivo: string): MetricState<T> {
-  return { status: "SIN_DEFINIR", motivo };
-}
-
-/**
  * Umbrales de muestra mínima. Copiados de la tabla de R-M1, docs/05 §1.
  *
  * No se tocan sin cambiar el documento primero. Están juntos y con nombre para
@@ -63,6 +47,8 @@ export const MIN_N = {
   volumen: 1,
   distribucion: 10,
   detractores: 10,
+  /** R-M1: 10, igual que detractores. */
+  promotores: 10,
   /** §2.5 y R-M2: "solo con n >= 10". */
   media: 10,
   /** R-M1: 10 por dimensión. */

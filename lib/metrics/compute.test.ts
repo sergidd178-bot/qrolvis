@@ -21,6 +21,7 @@ import {
   distribucion,
   finalizacionPct,
   media,
+  promotoresPct,
   puntos,
   volumen,
 } from "./compute";
@@ -90,9 +91,9 @@ describe("N = 0: todas las métricas devuelven INSUFICIENTE, ninguna división p
     expect(texto).not.toContain("null");
   });
 
-  it("promotores queda SIN_DEFINIR, no en cero", () => {
-    // docs/05 no le asigna muestra mínima. Un 0 aquí sería mentira.
-    expect(m.promotoresPct.status).toBe("SIN_DEFINIR");
+  it("promotores queda INSUFICIENTE, no en cero", () => {
+    // Un 0 % de promotores con cero respuestas sería mentira, no un dato.
+    expect(m.promotoresPct.status).toBe("INSUFICIENTE");
   });
 
   it("la comparativa sin datos se omite, no revienta", () => {
@@ -113,6 +114,19 @@ describe("N = 9 y N = 10: el corte exacto de la muestra mínima", () => {
     expect(distribucion(rs).status).toBe("OK");
     expect(detractoresPct(rs).status).toBe("OK");
     expect(media(rs).status).toBe("OK");
+  });
+
+  it("promotores corta en el mismo 10 que detractores", () => {
+    expect(promotoresPct(conValoracion(5, 9)).status).toBe("INSUFICIENTE");
+    const diez = promotoresPct(conValoracion(5, 10));
+    expect(diez.status).toBe("OK");
+    if (diez.status === "OK") expect(diez.value).toBe(100);
+  });
+
+  it("un 4 no cuenta como promotor: solo el 5 (§2.4)", () => {
+    const p = promotoresPct(conValoracion(4, 10));
+    expect(p.status).toBe("OK");
+    if (p.status === "OK") expect(p.value).toBe(0);
   });
 
   it("el volumen se muestra siempre, incluso con 1", () => {

@@ -15,7 +15,6 @@ import {
   MIN_N,
   ok,
   omitted,
-  undefinedThreshold,
   type ComentarioRow,
   type DeltaDimension,
   type DimensionAnswerRow,
@@ -84,32 +83,17 @@ export function detractoresPct(responses: ResponseRow[]): MetricState<number> {
 /**
  * §2.4 · promotores_pct = n(5) / N * 100
  *
- * PENDIENTE Y DELIBERADO: la tabla de R-M1 no le asigna muestra mínima. Están
- * volumen, distribución, detractores, dimensión, comparativa, punto y
- * comentarios; promotores NO aparece.
+ * n >= 10, igual que detractores. La tabla de R-M1 no lo incluía y por eso esta
+ * función estuvo devolviendo SIN_DEFINIR: el umbral no se podía deducir (R1).
+ * Ya está en el documento, así que aquí se aplica.
  *
- * Sin ese umbral la métrica no se puede publicar: R-M1 dice que ninguna se
- * publica sin muestra suficiente, y ponerle 10 "porque es lo que tiene
- * detractores" es exactamente lo que R1 prohíbe.
- *
- * Devuelve SIN_DEFINIR con el motivo. Un porcentaje sin umbral engañaría, y un
- * umbral de relleno —0, NaN— sería peor todavía: un número falso dentro de la
- * capa que existe para que no haya números falsos.
- *
- * En cuanto la tabla de R-M1 le asigne un n mínimo, esto son dos líneas.
+ * Solo cuenta el 5. Un 4 es un cliente satisfecho, no un prescriptor.
  */
-export function promotoresPct(): MetricState<number> {
-  return undefinedThreshold(
-    "docs/05 §2.4 define la fórmula pero la tabla de R-M1 no le asigna muestra mínima. " +
-      "Sin ese umbral no se puede publicar (R-M1) y no se puede deducir (R1).",
-  );
-}
-
-/** Valor de promotores, ya calculable. Se expone aparte para no perder el trabajo. */
-export function promotoresPctValor(responses: ResponseRow[]): number | null {
+export function promotoresPct(responses: ResponseRow[]): MetricState<number> {
   const N = responses.length;
-  if (N === 0) return null;
-  return pct(contar(responses)[5], N);
+  if (N < MIN_N.promotores) return insufficient(N, MIN_N.promotores);
+
+  return ok(pct(contar(responses)[5], N));
 }
 
 /**
@@ -343,7 +327,7 @@ export function computePeriod(
     volumen: volumen(responses),
     distribucion: distribucion(responses),
     detractoresPct: detractoresPct(responses),
-    promotoresPct: promotoresPct(),
+    promotoresPct: promotoresPct(responses),
     media: media(responses),
     dimensiones: dimensiones(responses, answers),
     puntos: puntos(responses),
