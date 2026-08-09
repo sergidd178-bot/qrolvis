@@ -257,12 +257,26 @@ create table alerts (
   business_id  uuid not null references businesses(id) on delete restrict,
   channel      text not null default 'email',
   status       text not null default 'pending'
-               check (status in ('pending', 'sent', 'failed')),
+               check (status in ('pending', 'sent', 'failed', 'not_applicable')),
   error_detail text,
   created_at   timestamptz not null default now(),
   sent_at      timestamptz,
   unique (response_id)
 );
+
+-- Estados:
+--   pending         registrada, aún sin enviar. Incluye las retenidas para el
+--                   resumen diario al superar el tope de 5 por negocio y día.
+--   sent            enviada, sola o dentro de un resumen.
+--   failed          se intentó y falló. El motivo va en error_detail.
+--   not_applicable  se decidió NO enviarla. El motivo va en error_detail.
+--                   Hoy solo lo usa el límite de 48 h de antigüedad (D28).
+--
+-- `unique (response_id)` no es solo una salvaguarda contra duplicados: es la
+-- cerradura del envío. El insert de la fila es lo que reclama la alerta, así que
+-- dos procesos simultáneos no pueden mandar el mismo aviso dos veces, y la
+-- existencia de la fila es lo que impide que la tarea programada vuelva a
+-- evaluar esa respuesta en cada pasada.
 
 create table reports (
   id           uuid primary key default gen_random_uuid(),

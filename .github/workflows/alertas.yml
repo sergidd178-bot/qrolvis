@@ -1,0 +1,51 @@
+# Disparador del trabajo programado de alertas.
+#
+# POR QUE AQUI Y NO EN VERCEL: el plan Hobby limita los crons de Vercel a
+# frecuencia DIARIA. Una respuesta abandonada con valoración baja esperaría
+# hasta 24 horas, lo que vacía de sentido la segunda promesa del producto
+# ("aviso inmediato antes de que se convierta en una reseña pública negativa").
+# GitHub Actions permite intervalos de minutos y el repositorio ya está aquí.
+#
+# En vercel.json queda además un cron diario como red de seguridad, por si
+# GitHub desactiva este workflow: lo hace automáticamente tras 60 días sin
+# actividad en el repositorio.
+#
+# AVISO SOBRE LA PUNTUALIDAD: los `schedule` de GitHub Actions son de mejor
+# esfuerzo, no garantizados, y en horas punta pueden retrasarse bastante. Da
+# igual: las tareas consultan por estado y no por marca de agua, así que un
+# ciclo perdido solo retrasa. Nunca duplica: alerts tiene unique(response_id).
+
+name: Alertas programadas
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  # Para poder dispararlo a mano desde la pestaña Actions al depurar.
+  workflow_dispatch:
+
+# Si una ejecución se solapa con la anterior, se descarta la nueva en vez de
+# correr las dos: no hace daño —el insert es la cerradura— pero no aporta nada.
+concurrency:
+  group: alertas
+  cancel-in-progress: false
+
+jobs:
+  disparar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Llamar a /api/cron
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "Falta el secreto CRON_SECRET en el repositorio."
+            exit 1
+          fi
+
+          # --fail-with-body para que un 401 o un 503 tumben el workflow y se
+          # vean en la pestaña Actions, en vez de pasar como si todo fuera bien.
+          curl --silent --show-error --fail-with-body \
+            --max-time 90 \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            https://www.qrolvis.com/api/cron

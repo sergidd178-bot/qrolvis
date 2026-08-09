@@ -66,6 +66,59 @@ de opiniones. Responde a este email si quieres cambiar el umbral.
 }
 
 /**
+ * Resumen agrupado del día, cuando un negocio supera el tope de 5 individuales.
+ *
+ * docs/05 dice "se agrupa en un único email resumen" y NO especifica su
+ * contenido, así que este formato es una decisión de implementación, no una cita
+ * del documento. Se mantiene deliberadamente igual que la alerta individual —
+ * misma información por respuesta, mismo pie, texto plano— para que quien ya ha
+ * recibido alertas sueltas no tenga que aprender a leer otra cosa.
+ */
+export type DigestItem = {
+  overallRating: number;
+  pointLabel: string;
+  submittedAt: string;
+  comment: string | null;
+  dimensions: AlertDimension[];
+};
+
+export function digestSubject(businessName: string, count: number): string {
+  return `Resumen: ${count} valoraciones bajas en ${businessName}`;
+}
+
+export function digestBody(businessName: string, day: string, items: DigestItem[]): string {
+  const bloques = items
+    .map((item, i) => {
+      const comment = item.comment?.trim() ? item.comment.trim() : "No dejó comentario";
+      // Tres espacios, los mismos que el resto de líneas del bloque: con dos
+      // quedaban colgando bajo su propio encabezado.
+      const dimensions =
+        item.dimensions.length > 0
+          ? item.dimensions.map((d) => `   - ${d.label}: ${d.rating} de 5`).join("\n")
+          : "   No valoró aspectos concretos.";
+      return `${i + 1}. Valoración de ${item.overallRating} sobre 5
+   Punto: ${item.pointLabel}
+   Hora: ${formatInZone(item.submittedAt)}
+   Comentario: "${comment}"
+   Valoraciones por aspecto:
+${dimensions}`;
+    })
+    .join("\n\n");
+
+  return `El ${day} recibiste ${items.length} valoraciones de 2 o menos en ${businessName},
+por encima del máximo de avisos sueltos que se envían en un día.
+
+Van todas juntas aquí en vez de una por una:
+
+${bloques}
+
+---
+Recibes este aviso porque tienes activado el servicio de recogida
+de opiniones. Responde a este email si quieres cambiar el umbral.
+`;
+}
+
+/**
  * Aviso al operador cuando un negocio supera 15 alertas en una semana.
  *
  * docs/05: "es señal de un problema serio en el local o de un uso indebido del

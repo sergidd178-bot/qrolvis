@@ -20,11 +20,28 @@ export const LOW_RATING_THRESHOLD = 2;
 export const DAILY_INDIVIDUAL_LIMIT = 5;
 export const WEEKLY_OPERATOR_THRESHOLD = 15;
 
+/**
+ * Ventana tras la cual una respuesta parcial ya puede alertarse.
+ *
+ * Coincide con PARTIAL_WINDOW_MINUTES de lib/db/responses.ts, y coincidir es el
+ * punto: hasta que esa ventana no cierra, la persona todavía puede añadir el
+ * comentario, y docs/03 dice que la alerta espera precisamente para poder
+ * incluirlo.
+ */
+export const PARTIAL_ALERT_DELAY_MINUTES = 30;
+
+/**
+ * Antigüedad máxima para enviar. Pasado el plazo la alerta se registra pero no
+ * se envía: avisar de una valoración de hace tres días no es un aviso, es ruido.
+ */
+export const MAX_ALERT_AGE_HOURS = 48;
+
 export type AlertOutcome =
-  | { status: "not_applicable" }
+  | { status: "not_applicable"; reason?: string }
   | { status: "already_handled" }
   | { status: "sent" }
   | { status: "held_for_digest"; todayCount: number }
+  | { status: "too_old" }
   | { status: "failed"; error: string };
 
 /**
@@ -95,7 +112,20 @@ export async function processAlert(responseId: string): Promise<AlertOutcome> {
   // La condición, tal cual docs/05. Se comprueba aquí y no en quien llama para
   // que no pueda colarse una alerta por un camino que se olvide de mirarla.
   if (response.overall_rating > LOW_RATING_THRESHOLD) return { status: "not_applicable" };
-  if (response.completeness !== "complete") return { status: "not_applicable" };
+
+  const ageMs = Date.now() - new Date(response.submitted_at).getTime();
+
+  // Una parcial SÍ alerta, pero solo cuando su ventana de edición ha cerrado:
+  // hasta entonces la persona todavía puede escribir el comentario, y docs/03
+  // dice que la alerta espera justamente para incluirlo.
+  //
+  // OJO: esto NO cambia `completeness`. La respuesta sigue siendo `partial`
+  // para siempre. `docs/05` §2.10 calcula la tasa de finalización como
+  // complete/N, así que cerrarlas aquí daría 100 % constante y destruiría la
+  // única métrica que sirve para detectar que el formulario falla.
+  if (response.completeness !== "complete") {
+    if (ageMs < PARTIAL_ALERT_DELAY_MINUTES * 60_000) return { status: "not_applicable" };
+  }
 
   const business = response.businesses;
   if (!business?.alert_email) return { status: "not_applicable" };
@@ -110,6 +140,21 @@ export async function processAlert(responseId: string): Promise<AlertOutcome> {
     .single();
 
   if (insertError || !alert) return { status: "already_handled" };
+
+  // Demasiado vieja: se registra la decisión y no se envía. La fila existe, así
+  // que la tarea no volverá a evaluar esta respuesta en cada ejecución, y queda
+  // constancia de por qué se descartó.
+  if (ageMs > MAX_ALERT_AGE_HOURS * 3600_000) {
+    const horas = Math.floor(ageMs / 3600_000);
+    await supabase
+      .from("alerts")
+      .update({
+        status: "not_applicable",
+        error_detail: `No enviada: la respuesta tiene ${horas} h, por encima del límite de ${MAX_ALERT_AGE_HOURS} h.`,
+      })
+      .eq("id", alert.id);
+    return { status: "too_old" };
+  }
 
   // Anti-saturación: cuántas van hoy para este negocio, sin contar la recién
   // creada. El corte de día es el de Madrid, no el de UTC (lib/time.ts).
