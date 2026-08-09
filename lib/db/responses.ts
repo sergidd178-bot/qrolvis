@@ -1,5 +1,6 @@
 import "server-only";
 
+import { scheduleAlert } from "../alerts";
 import { createAdminClient } from "./admin";
 import type { Database } from "./types";
 import type { Language } from "../i18n";
@@ -256,7 +257,18 @@ async function finish(
     })
     .eq("id", responseId);
 
-  return error ? { status: "not_updatable" } : { status: "ok" };
+  if (error) return { status: "not_updatable" };
+
+  // ÚNICO punto por el que una respuesta pasa a `complete`, así que es el único
+  // sitio donde hace falta mirar si toca alertar. Cubre el envío de la pantalla
+  // 2, el enlace de saltar y, cuando exista, la tarea de cierre de parciales.
+  //
+  // Se programa, no se espera: el trabajo corre tras enviar la respuesta HTTP.
+  // La condición (overall_rating <= 2) la comprueba la propia capa de alertas,
+  // que es quien conoce la regla; aquí no se duplica.
+  scheduleAlert(responseId);
+
+  return { status: "ok" };
 }
 
 /**
