@@ -223,6 +223,19 @@ El sistema propone el candidato aplicando esta prioridad:
 2. Si no hay, dimensión con mayor caída respecto al mes anterior
 3. Si no hay, volumen de respuestas si ha caído más de un 30%
 
+**Aclaración: volumen por debajo de 10 (D31).** Con menos de 10 respuestas ninguna
+dimensión llega a su muestra mínima, así que la regla 1 no puede disparar y no hay
+nada que analizar sobre la calidad del servicio. En ese caso el sistema propone un
+borrador **ya completo y sin huecos**, sobre captación en vez de sobre calidad, que
+el operador puede enviar tal cual o editar.
+
+Es la **única** propuesta sin corchetes, y la excepción está acotada a propósito: el
+mensaje no depende del negocio —con esa muestra lo único que se puede decir es que
+hacen falta más respuestas—, así que obligar a reescribirlo cada mes sería trabajo
+sin criterio. **No se relaja la exigencia de intervención humana**: el operador
+sigue teniendo que leerlo y generar el informe a mano (D18), y el cron sigue sin
+enviar nada por su cuenta (D30).
+
 ### Pie
 
 - Periodo exacto cubierto

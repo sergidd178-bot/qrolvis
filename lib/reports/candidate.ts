@@ -24,7 +24,7 @@
  * nadie tenga que acordarse de escribirla. Pero conviene saber que hoy no entra.
  */
 
-import type { DeltaDimension, DimensionScore, MetricState } from "../metrics/types";
+import { MIN_N, type DeltaDimension, type DimensionScore, type MetricState } from "../metrics/types";
 
 /** §3, Bloque 5, regla 3: "si ha caído más de un 30 %". */
 export const CAIDA_VOLUMEN_MINIMA = 0.3;
@@ -40,6 +40,7 @@ export type Candidate =
     }
   | { tipo: "dimension_caida"; code: string; label: string; delta: number }
   | { tipo: "volumen"; actual: number; anterior: number; caidaPct: number }
+  | { tipo: "volumen_bajo"; n: number }
   | { tipo: "ninguno" };
 
 export function proposeCandidate(input: {
@@ -61,6 +62,22 @@ export function proposeCandidate(input: {
       nD: peor.nD,
       detractoresPct: peor.detractoresPct,
     };
+  }
+
+  // 1 bis. Volumen por debajo de la muestra mínima de una dimensión.
+  //
+  //    No sustituye a ninguna regla del documento: por debajo de 10 respuestas
+  //    la regla 1 NO PUEDE disparar, porque exige dimensiones con n >= 10 y para
+  //    eso hacen falta al menos 10 completas. Este caso solo pone nombre a un
+  //    hueco que antes caía en "ninguno" o en la regla del volumen.
+  //
+  //    Y es el hecho dominante del mes: con menos de 10 respuestas no se puede
+  //    concluir NADA sobre la calidad del servicio, así que hablar de una caída
+  //    porcentual sería discutir el matiz e ignorar lo evidente.
+  //
+  //    Por encima de 10 el comportamiento no cambia ni un ápice.
+  if (input.volumenActual < MIN_N.dimension) {
+    return { tipo: "volumen_bajo", n: input.volumenActual };
   }
 
   // 2. Mayor caída respecto al mes anterior. Solo cuentan las caídas: un delta
@@ -93,13 +110,31 @@ export function proposeCandidate(input: {
 }
 
 /**
- * Texto de arranque que ve el operador. NO es la recomendación: es el andamio
- * sobre el que escribe, y por eso lleva huecos entre corchetes que obligan a
- * intervenir. Un texto que se pudiera enviar tal cual acabaría enviándose tal
- * cual.
+ * Texto de arranque que ve el operador.
+ *
+ * En general NO es la recomendación: es el andamio sobre el que escribe, y por
+ * eso lleva huecos entre corchetes que obligan a intervenir. Un texto que se
+ * pudiera enviar tal cual acabaría enviándose tal cual.
+ *
+ * EXCEPCIÓN DELIBERADA: el caso de volumen bajo. Ahí el mensaje no depende del
+ * negocio —con menos de 10 respuestas lo único que se puede decir es "hay que
+ * conseguir más respuestas"— así que el borrador va completo y SIN corchetes, y
+ * `generateReport()` lo acepta tal cual. No se relaja ninguna regla: el operador
+ * sigue teniendo que leerlo y pulsar generar, que es lo que exigen D18 y D30.
+ * Lo que se quita es el trabajo de reescribir cada mes el mismo párrafo.
  */
 export function draftFor(candidate: Candidate): string {
   switch (candidate.tipo) {
+    case "volumen_bajo":
+      return (
+        "Este mes ha habido pocas respuestas para sacar conclusiones sobre la " +
+        "calidad del servicio. Antes de nada, conviene revisar la captación: " +
+        "comprueba que los QR están visibles y en buen estado, y valora si " +
+        "ofrecer algún estímulo o incentivo a los clientes para animarles a " +
+        "rellenar el formulario. Si ya lo estáis haciendo y aun así el volumen " +
+        "sigue siendo bajo, escríbenos a informes@qrolvis.com y lo revisamos " +
+        "juntos."
+      );
     case "dimension_peor":
       return (
         `Este mes lo más flojo ha sido ${candidate.label.toLowerCase()}: ` +

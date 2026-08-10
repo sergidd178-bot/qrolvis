@@ -195,6 +195,8 @@ export const admin = {
     `${label} ha bajado ${Math.abs(delta)} puntos respecto al mes anterior. Ninguna dimensión llega a la muestra mínima, así que manda la caída.`,
   candidateVolume: (actual: number, anterior: number, pct: number) =>
     `El volumen ha caído un ${pct} %: ${actual} respuestas frente a ${anterior} el mes pasado. Suele ser un problema de los QR, no del local.`,
+  candidateLowVolume: (n: number) =>
+    `Solo ${n} ${n === 1 ? "respuesta" : "respuestas"} este mes, por debajo de las 10 que hacen falta para publicar cualquier métrica. No hay nada que analizar sobre la calidad: el asunto es la captación. El borrador de abajo ya viene completo y puedes enviarlo tal cual o editarlo.`,
   candidateNone:
     "Nada destaca este mes: ninguna dimensión con muestra suficiente, ninguna caída y el volumen se mantiene. Escribe lo que te parezca útil.",
   candidateRuleNote:

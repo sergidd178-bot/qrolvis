@@ -223,6 +223,8 @@ function resumenCandidato(c: Candidate): string {
       return `Propuesta: ${c.label}, ha bajado ${Math.abs(c.delta)} puntos.`;
     case "volumen":
       return `Propuesta: el volumen ha caído un ${c.caidaPct} % (${c.actual} frente a ${c.anterior}).`;
+    case "volumen_bajo":
+      return `Solo ${c.n} respuestas: por debajo del mínimo para publicar nada. El borrador de volumen bajo ya viene completo.`;
     case "ninguno":
       return `Nada destaca este mes.`;
   }

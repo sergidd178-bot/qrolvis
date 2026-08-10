@@ -393,6 +393,8 @@ function textoCandidato(c: ReturnType<typeof proposeCandidate>): string {
       return admin.candidateDrop(c.label, c.delta);
     case "volumen":
       return admin.candidateVolume(c.actual, c.anterior, c.caidaPct);
+    case "volumen_bajo":
+      return admin.candidateLowVolume(c.n);
     case "ninguno":
       return admin.candidateNone;
   }
