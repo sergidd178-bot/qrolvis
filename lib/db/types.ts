@@ -314,6 +314,7 @@ export type Database = {
           pdf_url: string | null
           period_end: string
           period_start: string
+          recommendation: string | null
           sent_at: string | null
           status: string
         }
@@ -325,6 +326,7 @@ export type Database = {
           pdf_url?: string | null
           period_end: string
           period_start: string
+          recommendation?: string | null
           sent_at?: string | null
           status?: string
         }
@@ -336,6 +338,7 @@ export type Database = {
           pdf_url?: string | null
           period_end?: string
           period_start?: string
+          recommendation?: string | null
           sent_at?: string | null
           status?: string
         }

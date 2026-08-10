@@ -41,6 +41,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           <Link href="/admin/negocios">{admin.businesses}</Link>
           <Link href="/admin/respuestas">{admin.responses}</Link>
           <Link href="/admin/comentarios">{admin.comments}</Link>
+          <Link href="/admin/informes">{admin.reports}</Link>
         </nav>
         <span style={{ fontSize: "0.8125rem", color: "#6b7280" }}>
           {admin.signedInAs} {operator.email}

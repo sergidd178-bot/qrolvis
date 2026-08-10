@@ -165,6 +165,53 @@ export const admin = {
   personalDataWarning:
     "El texto va íntegro, tal como se escribió. Puede contener datos personales que la persona incluyó por su cuenta —un nombre, la descripción de alguien del equipo—. No lo reenvíes fuera de aquí.",
 
+  // Informes
+  reports: "Informes",
+  reportsTitle: "Informe mensual",
+  reportsIntro:
+    "Elige el negocio y el mes. Verás el resumen de sus métricas y una propuesta de sobre qué escribir; la recomendación la redactas tú.",
+  chooseBusiness: "Negocio",
+  chooseMonth: "Mes",
+  loadPeriod: "Ver el periodo",
+  noResponsesInPeriod:
+    "Este periodo no tiene ninguna respuesta. Puedes generar el informe igualmente, pero saldrá sin muestra suficiente en casi todo.",
+  periodSummary: "Resumen del periodo",
+  metricVolume: "Respuestas",
+  metricDetractors: "Valoraciones de 2 o menos",
+  metricAverage: "Media global",
+  metricNoSample: (n: number, required: number) => `sin muestra suficiente (${n} de ${required})`,
+  dimensionsTitle: "Por aspecto, de peor a mejor",
+
+  candidateTitle: "Sobre qué propone hablar el sistema",
+  candidateWorst: (label: string, media: number, nD: number, det: number) =>
+    `${label}: ${media} de media sobre ${nD} respuestas, con un ${det} % de valoraciones de 2 o menos. Es el aspecto peor valorado que supera la muestra mínima.`,
+  candidateDrop: (label: string, delta: number) =>
+    `${label} ha bajado ${Math.abs(delta)} puntos respecto al mes anterior. Ninguna dimensión llega a la muestra mínima, así que manda la caída.`,
+  candidateVolume: (actual: number, anterior: number, pct: number) =>
+    `El volumen ha caído un ${pct} %: ${actual} respuestas frente a ${anterior} el mes pasado. Suele ser un problema de los QR, no del local.`,
+  candidateNone:
+    "Nada destaca este mes: ninguna dimensión con muestra suficiente, ninguna caída y el volumen se mantiene. Escribe lo que te parezca útil.",
+  candidateRuleNote:
+    "La propuesta sale de la prioridad de docs/05 §3: peor media, si no la mayor caída, si no el volumen. Es un punto de partida, no una obligación.",
+
+  recommendationLabel: "La recomendación de este mes",
+  recommendationHelp:
+    "Una sola recomendación, no tres. La firma tu nombre y va al final del informe, así que escríbela como se la dirías al dueño. Quita los corchetes: mientras queden, el informe no se genera.",
+  generateReport: "Generar el informe",
+  regenerateReport: "Regenerar el informe",
+  reportGenerated: "Informe generado.",
+  downloadReport: "Descargar el PDF",
+
+  reportExists: (fecha: string) => `Ya hay un informe generado el ${fecha}.`,
+  reportSent: (fecha: string) => `Este informe se envió al cliente el ${fecha}.`,
+  reportSentWarning:
+    "El cliente ya tiene ese PDF en su correo. Si lo regeneras, lo que guardamos dejará de coincidir con lo que él recibió, y no hay forma de avisarle automáticamente.",
+  confirmRegenerate: "Entiendo que el cliente ya tiene la versión anterior",
+  needsConfirmation:
+    "Este informe ya se envió. Marca la casilla de confirmación para regenerarlo.",
+  recommendationMissing:
+    "Falta la recomendación. Escríbela y quita los corchetes del borrador: sin ella no se genera el informe.",
+
   downloadPdf: "Descargar PDF de QR",
   downloadPdfHint:
     "Un QR por página, con su etiqueta y su código. Solo los puntos activos.",

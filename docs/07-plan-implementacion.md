@@ -141,8 +141,8 @@ velocidad percibida en 4G débil, y esa sí se cumple. Detalle en `docs/01`,
 
 1. Capa `/lib/metrics` con **todas** las definiciones de `05-informes-y-alertas.md`
 2. Tests de la capa de métricas, incluidos todos los casos del punto 5 de ese documento
-3. Plantilla HTML del informe
-4. Conversión a PDF
+3. Plantilla del informe en `@react-pdf/renderer` (D24)
+4. ~~Conversión a PDF~~ — no existe como paso aparte: la plantilla **es** el PDF
 5. Tarea programada mensual
 6. Envío por email al cliente
 7. Generación manual desde el panel para un periodo arbitrario
