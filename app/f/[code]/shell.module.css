@@ -19,7 +19,28 @@
  *   #15803D  verde de acción       3,75:1 sobre el fondo, blanco encima 5,02:1
  *   #E5E7EB  bordes */
 :global(html) {
-  background: #f9dba5;
+  /* El color plano se queda como respaldo: si el gradiente no se aplicara, el
+     fondo sigue siendo el aprobado y no un blanco por defecto. */
+  background-color: #f9dba5;
+
+  /* Gradiente radial del 4 %, ni uno más.
+   *
+   * El centro es EXACTAMENTE el color ya validado; solo el borde oscurece. Así
+   * el peor caso de contraste está acotado por construcción y no depende de
+   * dónde caiga cada elemento.
+   *
+   * El 4 % no es una preferencia estética, sale de los números. En el extremo
+   * oscuro (#EFD29E):
+   *     texto secundario #4B5563   5,18:1  (mínimo 4,5)
+   *     botón verde vs fondo       3,44:1  (mínimo 3,0)
+   *     sello azul, gráfico        3,54:1  (mínimo 3,0)
+   *     insignia compuesta         5,41:1  (mínimo 4,5)
+   * Al 8 % el botón caería a 3,14:1, a catorce centésimas de incumplir. Por eso
+   * el techo es el 4 % y no se negocia hacia arriba.
+   *
+   * Sin `background-attachment: fixed`: obligaría a repintar el fondo en cada
+   * scroll, y esta ruta no puede pagar eso (R9). */
+  background-image: radial-gradient(120% 90% at 50% 0%, #f9dba5 0%, #efd29e 100%);
 }
 
 .shell {
