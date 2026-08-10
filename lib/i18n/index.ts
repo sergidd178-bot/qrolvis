@@ -20,6 +20,16 @@ export type Dictionary = {
   thanksHighBody: string;
   thanksLowTitle: string;
   thanksLowBody: string;
+  /**
+   * Versiones para el negocio SIN `google_review_url`.
+   *
+   * docs/03, "Casos límite": ahí la pantalla 3 es "sin botón, solo
+   * agradecimiento". Los textos normales invitan a dejar una reseña, y sin
+   * enlace esa invitación no lleva a ninguna parte: se pide algo y no se da
+   * forma de hacerlo.
+   */
+  thanksHighBodyNoLink: string;
+  thanksLowBodyNoLink: string;
   googleButton: string;
   /** Solo para lector de pantalla: el enlace de Google abre en pestaña nueva. */
   googleNewWindow: string;
@@ -72,6 +82,9 @@ const dictionary: Record<Language, Dictionary> = {
     thanksLowTitle: "Gracias por decírnoslo",
     thanksLowBody:
       "Sentimos que no haya ido como esperabas. Hemos avisado al responsable y lo tendrá en cuenta. Si quieres, también puedes dejar tu opinión pública en Google.",
+    thanksHighBodyNoLink: "Nos alegra que hayas disfrutado. Gracias por dedicarnos estos segundos.",
+    thanksLowBodyNoLink:
+      "Sentimos que no haya ido como esperabas. Hemos avisado al responsable y lo tendrá en cuenta.",
     googleButton: "Dejar reseña en Google",
     googleNewWindow: "Se abre en una ventana nueva",
     unavailable: "Este código no está disponible",
@@ -125,6 +138,9 @@ const dictionary: Record<Language, Dictionary> = {
     thanksLowTitle: "Gràcies per dir-nos-ho",
     thanksLowBody:
       "Lamentem que no hagi anat com esperaves. Hem avisat el responsable i ho tindrà en compte. Si vols, també pots deixar la teva opinió pública a Google.",
+    thanksHighBodyNoLink: "Ens alegra que ho hagis gaudit. Gràcies per dedicar-nos aquests segons.",
+    thanksLowBodyNoLink:
+      "Lamentem que no hagi anat com esperaves. Hem avisat el responsable i ho tindrà en compte.",
     googleButton: "Deixar ressenya a Google",
     googleNewWindow: "S'obre en una finestra nova",
     unavailable: "Aquest codi no està disponible",

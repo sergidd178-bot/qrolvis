@@ -347,6 +347,19 @@ function Screen3({
   t: Dictionary;
 }) {
   const positive = rating !== null && rating >= 4;
+
+  // Sin enlace no se puede invitar a dejar una reseña: docs/03 dice "sin botón,
+  // solo agradecimiento". El texto va emparejado con el botón, no con la
+  // valoración, y por eso se elige aquí y no dentro del JSX: si algún día
+  // vuelve a desacoplarse, el fallo es que se pide algo que no se puede hacer.
+  const body = googleReviewUrl
+    ? positive
+      ? t.thanksHighBody
+      : t.thanksLowBody
+    : positive
+      ? t.thanksHighBodyNoLink
+      : t.thanksLowBodyNoLink;
+
   return (
     <section className={s3.screen}>
       <span className={s3.seal}>
@@ -357,7 +370,7 @@ function Screen3({
           el tamaño, ni la posición del botón: las dos versiones de esta pantalla
           son idénticas salvo estas dos cadenas. */}
       <h1 className={s3.title}>{positive ? t.thanksHighTitle : t.thanksLowTitle}</h1>
-      <p className={s3.body}>{positive ? t.thanksHighBody : t.thanksLowBody}</p>
+      <p className={s3.body}>{body}</p>
 
       {/* El botón se muestra siempre que el negocio tenga URL, sea cual sea la
           valoración. La única condición admisible es la ausencia de URL
