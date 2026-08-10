@@ -70,6 +70,15 @@
   border: 1px solid #e5e7eb;
   border-radius: 20px;
   padding: 1.25rem 0.5rem 1rem;
+  /* Sombra en el gris del texto y no en negro puro: sobre un fondo cálido, el
+     negro ensucia y se ve gris azulado. Dos capas, una de contacto y otra de
+     difusión, que es lo que separa una sombra de una mancha.
+
+     No cambia ningún contraste medible: la tarjeta sigue en 1,28:1 contra el
+     fondo. Ayuda a percibir el borde, no a cumplir 1.4.11. */
+  box-shadow:
+    0 1px 2px rgba(31, 41, 55, 0.05),
+    0 2px 8px rgba(31, 41, 55, 0.04);
 }
 
 .options {
