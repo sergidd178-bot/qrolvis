@@ -70,8 +70,13 @@ function answersPara(rs: ResponseRow[], code: string, value: number, version = 1
 describe("N = 0: todas las métricas devuelven INSUFICIENTE, ninguna división por cero", () => {
   const m = computePeriod([], []);
 
-  it("ninguna métrica queda en OK", () => {
-    expect(m.volumen.status).toBe("INSUFICIENTE");
+  it("el volumen es la excepción: sale 0, no un guion", () => {
+    // R-M1 exige mostrarlo siempre. "0 respuestas" es un dato accionable —el QR
+    // no se está usando—; un guion se lee como un fallo del informe.
+    expect(m.volumen).toBe(0);
+  });
+
+  it("ninguna otra métrica queda en OK", () => {
     expect(m.distribucion.status).toBe("INSUFICIENTE");
     expect(m.detractoresPct.status).toBe("INSUFICIENTE");
     expect(m.media.status).toBe("INSUFICIENTE");
@@ -129,9 +134,10 @@ describe("N = 9 y N = 10: el corte exacto de la muestra mínima", () => {
     if (p.status === "OK") expect(p.value).toBe(0);
   });
 
-  it("el volumen se muestra siempre, incluso con 1", () => {
-    expect(volumen(conValoracion(3, 1)).status).toBe("OK");
-    expect(volumen(conValoracion(3, 9)).status).toBe("OK");
+  it("el volumen se muestra siempre: con 0, con 1 y con 9", () => {
+    expect(volumen([])).toBe(0);
+    expect(volumen(conValoracion(3, 1))).toBe(1);
+    expect(volumen(conValoracion(3, 9))).toBe(9);
   });
 
   it("una dimensión con 9 valoraciones no llega y con 10 sí", () => {
@@ -220,8 +226,7 @@ describe("Respuestas partial mezcladas con complete: cada métrica usa el conjun
   const as = answersPara(completas, "food_quality", 2);
 
   it("el volumen cuenta las 12: R-M3 dice todas", () => {
-    const v = volumen(rs);
-    if (v.status === "OK") expect(v.value).toBe(12);
+    expect(volumen(rs)).toBe(12);
   });
 
   it("la valoración global usa las 12, no solo las completas", () => {
@@ -306,7 +311,7 @@ describe("Periodo anterior inexistente (primer mes del cliente): sin comparativa
 
   it("el resto del informe se calcula con normalidad", () => {
     const m = computePeriod(rs, as);
-    expect(m.volumen.status).toBe("OK");
+    expect(m.volumen).toBe(rs.length);
     expect(m.dimensiones.status).toBe("OK");
   });
 

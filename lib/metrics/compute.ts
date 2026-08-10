@@ -49,10 +49,15 @@ function contar(responses: ResponseRow[]): Record<1 | 2 | 3 | 4 | 5, number> {
   return n;
 }
 
-/** §2.1 · volumen = N. R-M1: siempre se muestra. */
-export function volumen(responses: ResponseRow[]): MetricState<number> {
-  const N = responses.length;
-  return N >= MIN_N.volumen ? ok(N) : insufficient(N, MIN_N.volumen);
+/**
+ * §2.1 · volumen = N.
+ *
+ * R-M1: siempre se muestra, sin umbral y sin excepción para el cero. "0
+ * respuestas" es un dato correcto y accionable —el QR no se está usando—,
+ * mientras que un guion parecería un fallo del informe.
+ */
+export function volumen(responses: ResponseRow[]): number {
+  return responses.length;
 }
 
 /**

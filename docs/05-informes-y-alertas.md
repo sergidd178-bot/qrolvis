@@ -16,7 +16,7 @@ explicativo, **nunca un número**.
 
 | Métrica | n mínimo | Si no se alcanza |
 |---|---|---|
-| Volumen de respuestas | 1 | Siempre se muestra |
+| Volumen de respuestas | 0 | Siempre se muestra, incluido el cero |
 | Distribución de valoración global | 10 | `INSUFICIENTE` |
 | Porcentaje de detractores | 10 | `INSUFICIENTE` |
 | Porcentaje de promotores | 10 | `INSUFICIENTE` |
@@ -74,6 +74,12 @@ volumen = N
 
 Es la métrica de salud **de nuestro servicio**, no del negocio. Si cae, actuamos
 nosotros sobre la captación.
+
+Por eso el volumen no tiene umbral de muestra mínima: con `N = 0` se publica
+**«0 respuestas»**, nunca un guion ni `INSUFICIENTE`. El cero es precisamente el
+dato que más nos interesa ver, porque significa que el QR no se está usando. En
+la capa de cálculo esto se refleja en que `volumen` es un número a secas y no un
+`MetricState`, para que ninguna pantalla pueda escribir una rama de «sin dato».
 
 ### 2.2 Distribución de la valoración global
 
@@ -287,6 +293,10 @@ pie, en 10 segundos.
 
 - Máximo **5 alertas por negocio y día**. Superado el límite, se agrupa en un único
   email resumen.
+  - El tope cuenta **correos que han salido**, es decir, filas en estado `sent`.
+    Una fila `not_applicable` (se decidió no enviar), `failed` (el envío no llegó)
+    o `pending` (retenida para el resumen) **no consume cupo**: el negocio no ha
+    recibido nada, así que no hay saturación de la que protegerlo.
 - Si un negocio supera 15 alertas en una semana, se avisa al operador: es señal de
   un problema serio en el local o de un uso indebido del sistema.
 

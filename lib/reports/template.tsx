@@ -286,9 +286,7 @@ function Informe({ businessName, metrics, recomendacion, operador, periodoTexto 
 
         <View style={s.cifras}>
           <View style={s.cifraBloque}>
-            <Text style={s.cifraNumero}>
-              {m.volumen.status === "OK" ? m.volumen.value : "—"}
-            </Text>
+            <Text style={s.cifraNumero}>{m.volumen}</Text>
             <Text style={s.cifraEtiqueta}>respuestas este mes</Text>
           </View>
           <View style={s.cifraBloque}>

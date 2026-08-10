@@ -238,10 +238,7 @@ async function Periodo({
       <div style={caja}>
         <h2 style={{ fontSize: "1rem", margin: "0 0 0.625rem" }}>{admin.periodSummary}</h2>
         <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap" }}>
-          <Cifra
-            etiqueta={admin.metricVolume}
-            valor={m.volumen.status === "OK" ? String(m.volumen.value) : "—"}
-          />
+          <Cifra etiqueta={admin.metricVolume} valor={String(m.volumen)} />
           <Cifra
             etiqueta={admin.metricDetractors}
             valor={

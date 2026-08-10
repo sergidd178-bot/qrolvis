@@ -43,8 +43,6 @@ export function omitted<T>(n: number, required: number): MetricState<T> {
  * que un cambio se vea en el diff y no quede escondido dentro de un `if`.
  */
 export const MIN_N = {
-  /** R-M1: siempre se muestra. */
-  volumen: 1,
   distribucion: 10,
   detractores: 10,
   /** R-M1: 10, igual que detractores. */
@@ -137,7 +135,12 @@ export type DeltaDimension = {
 export type PeriodMetrics = {
   /** N según R-M3 para la valoración global: TODAS las respuestas. */
   n: number;
-  volumen: MetricState<number>;
+  /**
+   * R-M1: sin umbral y sin envoltorio de estado. Un `MetricState` obligaría a
+   * cada pantalla a escribir una rama de "sin dato" que nunca se cumple, y esa
+   * rama acabó pintando un guion donde debía poner 0.
+   */
+  volumen: number;
   distribucion: MetricState<Distribucion>;
   detractoresPct: MetricState<number>;
   promotoresPct: MetricState<number>;
