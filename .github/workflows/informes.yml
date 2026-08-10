@@ -1,0 +1,45 @@
+# Preparación mensual de informes. Día 1 de cada mes.
+#
+# Misma doble capa que el workflow de alertas y por el mismo motivo: el plan
+# Hobby de Vercel limita sus crons a frecuencia diaria, así que el disparo del
+# día 1 lo hace GitHub y Vercel queda como red de seguridad diaria.
+#
+# Que la red de seguridad funcione depende de que la ruta sea IDEMPOTENTE: mira
+# qué informes del mes anterior faltan y crea solo esos. Si este workflow no
+# llega el día 1, el cron diario de Vercel lo recupera al día siguiente y no se
+# pierde nada, solo se retrasa.
+#
+# NO ENVÍA NADA AL CLIENTE. Prepara las filas y avisa al operador, que es quien
+# escribe la recomendación (D30).
+
+name: Informes mensuales
+
+on:
+  schedule:
+    # Día 1 a las 06:00 UTC: 08:00 en Madrid en verano, 07:00 en invierno. Antes
+    # de que el operador se siente a trabajar, para que se lo encuentre hecho.
+    - cron: "0 6 1 * *"
+  workflow_dispatch:
+
+concurrency:
+  group: informes
+  cancel-in-progress: false
+
+jobs:
+  preparar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Llamar a /api/cron/monthly
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "Falta el secreto CRON_SECRET en el repositorio."
+            exit 1
+          fi
+
+          curl --silent --show-error --fail-with-body \
+            --max-time 300 \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            https://www.qrolvis.com/api/cron/monthly

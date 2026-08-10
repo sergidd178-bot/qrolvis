@@ -174,7 +174,13 @@ export const admin = {
   chooseMonth: "Mes",
   loadPeriod: "Ver el periodo",
   noResponsesInPeriod:
-    "Este periodo no tiene ninguna respuesta. Puedes generar el informe igualmente, pero saldrá sin muestra suficiente en casi todo.",
+    "Este periodo no tiene ninguna respuesta. Antes de enviar nada, revisa la captación: los QR pueden haberse caído, tapado o desactivado. docs/05 §2.1 dice que el volumen mide la salud de NUESTRO servicio, no la del negocio, así que un mes vacío es un problema nuestro. Puedes generar el informe igualmente, pero la decisión es tuya.",
+  pendingQueueTitle: "Informes preparados esperando tu recomendación",
+  pendingQueueHelp:
+    "Los deja listos la tarea del día 1 de cada mes. Ninguno se ha enviado: falta que escribas su recomendación.",
+  pendingQueueOpen: "Escribir",
+  pendingQueueNone: "No hay ningún informe pendiente de recomendación.",
+  pendingNoResponses: "sin respuestas",
   periodSummary: "Resumen del periodo",
   metricVolume: "Respuestas",
   metricDetractors: "Valoraciones de 2 o menos",

@@ -8,7 +8,7 @@ import { getBusiness, listBusinesses } from "@/lib/db/businesses";
 import { monthlyMetrics } from "@/lib/metrics";
 import { dayInZone } from "@/lib/time";
 import { draftFor, proposeCandidate } from "@/lib/reports/candidate";
-import { findReport, signedReportUrl } from "@/lib/reports/store";
+import { findReport, listPendingReports, signedReportUrl } from "@/lib/reports/store";
 import { admin } from "@/lib/i18n/admin";
 import { formatInZone } from "@/lib/time";
 import { generateReportAction, sendReportAction } from "./actions";
@@ -128,10 +128,56 @@ export default async function InformesPage({
         </p>
       )}
 
+      {!seleccionado && <Pendientes />}
+
       {seleccionado && (
         <Periodo negocio={seleccionado.negocio} mes={seleccionado.mes} textoPrevio={sp.texto} />
       )}
     </section>
+  );
+}
+
+/**
+ * Cola de trabajo del operador: lo que la tarea del dia 1 dejo preparado y
+ * nadie ha rematado.
+ *
+ * Existe para que el trabajo pendiente no dependa de haber visto el correo de
+ * aviso. Un correo se pierde o se archiva; la cola sigue aqui.
+ */
+async function Pendientes() {
+  const pendientes = await listPendingReports();
+  if (pendientes.length === 0) return null;
+
+  return (
+    <div style={{ ...caja, background: "#fffbeb", borderColor: "#fcd34d" }}>
+      <h2 style={{ fontSize: "1rem", margin: "0 0 0.25rem", color: "#92400e" }}>
+        {admin.pendingQueueTitle}
+      </h2>
+      <p style={{ margin: "0 0 0.75rem", fontSize: "0.8125rem", color: "#92400e", lineHeight: 1.5 }}>
+        {admin.pendingQueueHelp}
+      </p>
+      {pendientes.map((p) => (
+        <div
+          key={`${p.businessId}-${p.month}`}
+          style={{ display: "flex", gap: "0.75rem", alignItems: "baseline", padding: "0.25rem 0", fontSize: "0.875rem" }}
+        >
+          <strong>{p.businessName}</strong>
+          <span style={{ color: "#6b7280" }}>{p.month}</span>
+          {/* Un mes sin respuestas se marca: es un problema NUESTRO de captacion
+              (docs/05 2.1), no un informe flojo, y quien decide que hacer es una
+              persona. */}
+          <span style={{ color: p.volumen === 0 ? "#991b1b" : "#6b7280", fontWeight: p.volumen === 0 ? 600 : 400 }}>
+            {p.volumen === 0 ? admin.pendingNoResponses : `${p.volumen} respuestas`}
+          </span>
+          <a
+            href={`/admin/informes?negocio=${p.businessId}&mes=${p.month}`}
+            style={{ marginLeft: "auto", color: "#2563eb", fontWeight: 600 }}
+          >
+            {admin.pendingQueueOpen}
+          </a>
+        </div>
+      ))}
+    </div>
   );
 }
 

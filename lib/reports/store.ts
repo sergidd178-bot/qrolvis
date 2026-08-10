@@ -123,3 +123,31 @@ export async function signedReportUrl(path: string, seconds = 300): Promise<stri
   const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, seconds);
   return data?.signedUrl ?? null;
 }
+
+/**
+ * Informes preparados que siguen sin recomendación escrita.
+ *
+ * Es la cola de trabajo del operador: lo que la tarea del día 1 dejó listo y
+ * nadie ha rematado todavía. Se muestra en el panel para que no dependa de que
+ * llegue el correo de aviso.
+ */
+export async function listPendingReports(): Promise<
+  { businessId: string; businessName: string; month: string; volumen: number }[]
+> {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("reports")
+    .select("business_id, period_start, metrics, businesses(name)")
+    .eq("status", "pending")
+    .order("period_start", { ascending: false });
+
+  return (data ?? []).map((r) => {
+    const m = r.metrics as { n?: number } | null;
+    return {
+      businessId: r.business_id,
+      businessName: r.businesses?.name ?? "—",
+      month: String(r.period_start).slice(0, 7),
+      volumen: typeof m?.n === "number" ? m.n : 0,
+    };
+  });
+}

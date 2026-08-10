@@ -282,8 +282,19 @@ obliga a reimprimir material físico ya colocado en el local.
 
 ## Programación de tareas
 
-Cron de Vercel el día 1 de cada mes: genera los informes del mes anterior para
-todos los negocios activos y los envía por email.
+Cron el día 1 de cada mes: **prepara** los informes del mes anterior para todos
+los negocios activos y avisa al operador. **No los envía** (D30).
+
+El envío automático y la recomendación escrita a mano son incompatibles: `docs/05`
+§3 exige que la escriba una persona, y sin ella no se genera el PDF. El cron hace
+todo lo automatizable —calcular, dejar la fila `pending` con la foto del cálculo,
+avisar— y el operador escribe y envía desde `/admin/informes`.
+
+La ruta `/api/cron/monthly` es **idempotente**: mira qué informes del mes anterior
+faltan y crea solo esos, así que se puede llamar cualquier día. La dispara GitHub
+Actions el día 1, con el cron diario de Vercel como red de seguridad, igual que
+las alertas y por el mismo motivo: el plan Hobby limita sus crons a frecuencia
+diaria.
 
 Las alertas no son programadas: se disparan de forma síncrona al recibir una
 respuesta que cumpla la condición.
