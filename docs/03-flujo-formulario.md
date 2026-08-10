@@ -126,10 +126,30 @@ Detalle del contenido en `05-informes-y-alertas.md`.
 
 ## Idioma
 
-- Se detecta por `Accept-Language` del navegador.
-- Si es catalán, se muestra en catalán. En cualquier otro caso, castellano.
+Tres fuentes, y se consultan en este orden. La primera que resuelve, gana:
+
+1. **El selector manual** (`?lang=`). Es una elección deliberada de quien tiene
+   el móvil en la mano, así que gana a todo lo demás.
+2. **`Accept-Language`, si pide catalán o castellano.** Quien tiene el navegador
+   en una de las dos lenguas del producto ya ha dicho cuál entiende.
+3. **`businesses.default_language`.** Cubre al visitante cuyo navegador está en
+   inglés, francés o alemán.
+
 - Selector manual discreto en el pie, siempre visible.
 - El idioma elegido se guarda en la respuesta. Es un dato útil para el cliente.
+- Si el negocio no existe o no tiene idioma válido, castellano.
+
+**Por qué hay un tercer escalón (D32).** La regla original era solo `Accept-Language`:
+catalán si lo pedía, castellano en cualquier otro caso. Eso trataba igual dos
+casos distintos —«este navegador pide castellano» y «este navegador pide inglés
+y no sabemos qué quiere»— y dejaba `default_language` como configuración que el
+panel ofrecía y el formulario no miraba nunca. Con la regla nueva, un turista con
+el móvil en inglés que entra en un local de Girona que atiende en catalán ve
+catalán, no castellano.
+
+El orden importa: el navegador va **antes** que el negocio. Alguien con el móvil
+en castellano entiende castellano, y ese dato es más fiable sobre esa persona
+concreta que la preferencia del local.
 
 ---
 

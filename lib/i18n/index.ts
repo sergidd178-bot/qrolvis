@@ -193,17 +193,47 @@ export function isLanguage(value: unknown): value is Language {
 }
 
 /**
- * docs/03, "Idioma": si el navegador pide catalán se muestra en catalán; en
- * cualquier otro caso, castellano.
+ * Preferencia EXPLÍCITA del navegador, o null si no la expresa.
+ *
+ * Devolver null y no un idioma por defecto es lo que permite distinguir "este
+ * navegador pide castellano" de "este navegador pide inglés y no sabemos qué
+ * quiere": son casos distintos y antes se trataban igual.
  *
  * No se usa una librería de negociación de contenido: la regla es de dos casos y
  * el presupuesto de esta ruta no admite una dependencia para esto (R9).
  */
-export function detectLanguage(acceptLanguage: string | null): Language {
-  if (!acceptLanguage) return DEFAULT_LANGUAGE;
+export function preferredLanguage(acceptLanguage: string | null): Language | null {
+  if (!acceptLanguage) return null;
   for (const part of acceptLanguage.split(",")) {
     const tag = (part.split(";")[0] ?? "").trim().toLowerCase();
     if (tag === "ca" || tag.startsWith("ca-")) return "ca";
+    if (tag === "es" || tag.startsWith("es-")) return "es";
   }
+  return null;
+}
+
+/**
+ * docs/03, "Idioma". Tres fuentes, en este orden:
+ *
+ *   1. `?lang=` — el selector del pie. Es una elección deliberada de la persona
+ *      que tiene el móvil en la mano y gana siempre.
+ *   2. `Accept-Language`, si pide catalán o castellano. Quien tiene el navegador
+ *      en una de las dos lenguas del producto ya ha dicho cuál entiende.
+ *   3. El idioma del negocio. Cubre al visitante cuyo navegador está en inglés,
+ *      francés o alemán: antes caía en castellano por defecto, y en un local de
+ *      Girona que atiende en catalán eso era la peor de las dos opciones.
+ *
+ * El tercer escalón es el que da sentido a `businesses.default_language`, que
+ * hasta ahora era configuración que no hacía nada.
+ */
+export function resolveLanguage(input: {
+  param: unknown;
+  acceptLanguage: string | null;
+  businessDefault: string | null | undefined;
+}): Language {
+  if (isLanguage(input.param)) return input.param;
+  const delNavegador = preferredLanguage(input.acceptLanguage);
+  if (delNavegador) return delNavegador;
+  if (isLanguage(input.businessDefault)) return input.businessDefault;
   return DEFAULT_LANGUAGE;
 }

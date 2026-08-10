@@ -19,9 +19,8 @@ import { headers } from "next/headers";
 import { createPublicClient } from "@/lib/db/client";
 import { readOverallRating } from "@/lib/db/responses";
 import {
-  detectLanguage,
   getDictionary,
-  isLanguage,
+  resolveLanguage,
   type Dictionary,
   type Language,
 } from "@/lib/i18n";
@@ -397,15 +396,21 @@ export default async function CapturePointPage({ params, searchParams }: PagePro
   const { s, r, lang, blocked, privacidad } = await searchParams;
 
   const requestHeaders = await headers();
-  const language: Language = isLanguage(lang)
-    ? lang
-    : detectLanguage(requestHeaders.get("accept-language"));
-
-  const t = getDictionary(language);
   const supabase = createPublicClient();
 
+  // La configuración se lee ANTES de resolver el idioma, porque el idioma del
+  // negocio es el último escalón de la regla. No añade latencia: esta consulta
+  // ya se hacía y sigue siendo la única de la pantalla 1.
   const { data: configRows } = await supabase.rpc("capture_point_config", { p_code: code });
   const config = configRows?.[0];
+
+  const language = resolveLanguage({
+    param: lang,
+    acceptLanguage: requestHeaders.get("accept-language"),
+    businessDefault: config?.default_language,
+  });
+
+  const t = getDictionary(language);
 
   // docs/03, "Casos límite": código inexistente, punto desactivado y negocio
   // pausado muestran el mismo mensaje neutro. La función unifica los tres.
