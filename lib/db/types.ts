@@ -310,6 +310,7 @@ export type Database = {
           business_id: string
           generated_at: string | null
           id: string
+          message_id: string | null
           metrics: Json
           pdf_url: string | null
           period_end: string
@@ -322,6 +323,7 @@ export type Database = {
           business_id: string
           generated_at?: string | null
           id?: string
+          message_id?: string | null
           metrics: Json
           pdf_url?: string | null
           period_end: string
@@ -334,6 +336,7 @@ export type Database = {
           business_id?: string
           generated_at?: string | null
           id?: string
+          message_id?: string | null
           metrics?: Json
           pdf_url?: string | null
           period_end?: string

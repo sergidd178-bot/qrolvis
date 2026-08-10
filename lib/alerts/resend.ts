@@ -20,17 +20,36 @@ const DEFAULT_FROM = "Qrolvis <alertas@qrolvis.com>";
 
 export type SendResult = { ok: true; id: string | null } | { ok: false; error: string };
 
+export type Attachment = { filename: string; content: Buffer };
+
 export async function sendEmail(input: {
   to: string;
   subject: string;
   text: string;
+  /**
+   * Remitente. Si no se indica se usa el de las alertas.
+   *
+   * Existe porque un informe mensual enviado desde `alertas@` chirría: son dos
+   * conversaciones distintas con el cliente, una urgente y otra periódica, y
+   * conviene que se distingan en su bandeja.
+   */
+  from?: string;
+  /**
+   * Adjuntos. Se usa para el PDF del informe.
+   *
+   * Adjunto y no enlace firmado: un informe se lee cuando el dueño tiene un
+   * rato, que pueden ser tres días, y cualquier caducidad que le pusiéramos
+   * sería una apuesta sobre cuándo abre el correo. Un enlace sin caducidad sería
+   * una URL pública a un documento con comentarios íntegros (docs/06).
+   */
+  attachments?: Attachment[];
 }): Promise<SendResult> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     return { ok: false, error: "Falta RESEND_API_KEY" };
   }
 
-  const from = process.env.ALERT_FROM_EMAIL?.trim() || DEFAULT_FROM;
+  const from = input.from?.trim() || process.env.ALERT_FROM_EMAIL?.trim() || DEFAULT_FROM;
 
   try {
     const resend = new Resend(apiKey);
@@ -40,6 +59,9 @@ export async function sendEmail(input: {
       subject: input.subject,
       // Solo texto. Ver el comentario de `template.ts`.
       text: input.text,
+      ...(input.attachments?.length
+        ? { attachments: input.attachments.map((a) => ({ filename: a.filename, content: a.content })) }
+        : {}),
     });
 
     if (error) {

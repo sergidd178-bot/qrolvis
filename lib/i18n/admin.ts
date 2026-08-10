@@ -212,6 +212,17 @@ export const admin = {
   recommendationMissing:
     "Falta la recomendación. Escríbela y quita los corchetes del borrador: sin ella no se genera el informe.",
 
+  sendReport: "Enviar al cliente",
+  resendReport: "Reenviar al cliente",
+  sendReportHelp: (email: string) =>
+    `Se enviará a ${email}, con el PDF adjunto. El adjunto se archiva en su bandeja; un enlace caducaría antes de que lo abriera.`,
+  reportSentOk: (email: string) => `Informe enviado a ${email}.`,
+  needsSendConfirmation:
+    "Este informe ya se envió una vez. Marca la casilla para volver a enviarlo y que el cliente no lo reciba dos veces por error.",
+  confirmResend: "Entiendo que el cliente ya lo recibió una vez",
+  sendNeedsGenerated:
+    "Genera el informe antes de enviarlo: no hay PDF que adjuntar.",
+
   downloadPdf: "Descargar PDF de QR",
   downloadPdfHint:
     "Un QR por página, con su etiqueta y su código. Solo los puntos activos.",

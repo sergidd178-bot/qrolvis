@@ -4,14 +4,14 @@
 // del panel: primero se elige negocio y mes por GET, y con esos dos parámetros
 // la página muestra el resumen, el candidato y el campo donde se escribe.
 
-import { listBusinesses } from "@/lib/db/businesses";
+import { getBusiness, listBusinesses } from "@/lib/db/businesses";
 import { monthlyMetrics } from "@/lib/metrics";
 import { dayInZone } from "@/lib/time";
 import { draftFor, proposeCandidate } from "@/lib/reports/candidate";
 import { findReport, signedReportUrl } from "@/lib/reports/store";
 import { admin } from "@/lib/i18n/admin";
 import { formatInZone } from "@/lib/time";
-import { generateReportAction } from "./actions";
+import { generateReportAction, sendReportAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +56,7 @@ type Params = {
   error?: string;
   texto?: string;
   generado?: string;
+  enviado?: string;
 };
 
 export default async function InformesPage({
@@ -121,6 +122,11 @@ export default async function InformesPage({
       {sp.generado === "1" && seleccionado && (
         <Generado negocio={seleccionado.negocio} mes={seleccionado.mes} />
       )}
+      {sp.enviado && (
+        <p role="status" style={{ ...caja, background: "#f0fdf4", borderColor: "#86efac", color: "#166534", fontSize: "0.875rem" }}>
+          {admin.reportSentOk(sp.enviado)}
+        </p>
+      )}
 
       {seleccionado && (
         <Periodo negocio={seleccionado.negocio} mes={seleccionado.mes} textoPrevio={sp.texto} />
@@ -154,7 +160,14 @@ async function Periodo({
   mes: string;
   textoPrevio?: string;
 }) {
-  const [m, existente] = await Promise.all([monthlyMetrics(negocio, mes), findReport(negocio, mes)]);
+  const [m, existente, datosNegocio] = await Promise.all([
+    monthlyMetrics(negocio, mes),
+    findReport(negocio, mes),
+    getBusiness(negocio),
+  ]);
+  // Se enseña la dirección ANTES de enviar: es la misma que recibe las alertas,
+  // y conviene que el operador lo vea y no lo dé por supuesto.
+  const emailDestino = datosNegocio?.alert_email ?? "—";
 
   const candidato = proposeCandidate({
     dimensiones: m.dimensiones,
@@ -253,6 +266,29 @@ async function Periodo({
               {admin.reportSentWarning}
             </p>
           )}
+        </div>
+      )}
+
+      {/* Enviar solo tiene sentido con un PDF ya guardado. Si no lo hay, ni se
+          ofrece el botón: no se puede adjuntar lo que no existe. */}
+      {existente?.pdfPath && (
+        <div style={{ ...caja, background: "#f8fafc" }}>
+          <form action={sendReportAction}>
+            <input type="hidden" name="businessId" value={negocio} />
+            <input type="hidden" name="month" value={mes} />
+            <p style={{ margin: "0 0 0.625rem", fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.5 }}>
+              {admin.sendReportHelp(emailDestino)}
+            </p>
+            {yaEnviado && (
+              <label style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.625rem", fontSize: "0.875rem" }}>
+                <input type="checkbox" name="confirmSend" />
+                {admin.confirmResend}
+              </label>
+            )}
+            <button type="submit" style={{ ...boton, background: "#166534" }}>
+              {yaEnviado ? admin.resendReport : admin.sendReport}
+            </button>
+          </form>
         </div>
       )}
 

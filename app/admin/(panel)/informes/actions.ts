@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { getBusiness } from "@/lib/db/businesses";
-import { RecomendacionPendienteError, generateReport } from "@/lib/reports";
+import { RecomendacionPendienteError, generateReport, sendReport } from "@/lib/reports";
 import { findReport, saveReport } from "@/lib/reports/store";
 import { admin } from "@/lib/i18n/admin";
 
@@ -65,4 +65,33 @@ export async function generateReportAction(formData: FormData) {
   }
 
   volver({ generado: "1" });
+}
+
+/**
+ * Envía al cliente el informe ya generado.
+ *
+ * Toda la lógica vive en `sendReport()`, que es la misma que usará la tarea
+ * programada. Aquí solo se traducen los parámetros del formulario y el resultado
+ * a un mensaje para el operador.
+ */
+export async function sendReportAction(formData: FormData) {
+  const businessId = String(formData.get("businessId") ?? "");
+  const month = String(formData.get("month") ?? "");
+  const confirmado = formData.get("confirmSend") === "on";
+
+  const volver = (params: Record<string, string>) => {
+    const q = new URLSearchParams({ negocio: businessId, mes: month, ...params });
+    redirect(`/admin/informes?${q}`);
+  };
+
+  // Reenviar es legítimo —un correo se pierde, el cliente lo borra— pero hacerlo
+  // sin darse cuenta no: el cliente recibiría dos veces el mismo informe.
+  const existente = await findReport(businessId, month);
+  if (existente?.status === "sent" && !confirmado) {
+    volver({ error: admin.needsSendConfirmation });
+  }
+
+  const resultado = await sendReport(businessId, month);
+
+  volver(resultado.ok ? { enviado: resultado.to } : { error: resultado.message });
 }

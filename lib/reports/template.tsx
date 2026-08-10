@@ -3,6 +3,7 @@ import "server-only";
 import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 
 import { formatInZone } from "../time";
+import { mesLargo } from "./month";
 import type { MonthlyMetrics } from "../metrics";
 import type { MetricState } from "../metrics/types";
 
@@ -107,16 +108,6 @@ const s = StyleSheet.create({
     lineHeight: 1.5,
   },
 });
-
-const MESES = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-];
-
-function mesLargo(month: string): string {
-  const [anio, mes] = month.split("-");
-  return `${MESES[Number(mes) - 1]} de ${anio}`;
-}
 
 /**
  * Texto para una métrica sin muestra suficiente.

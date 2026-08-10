@@ -8,6 +8,7 @@ import { renderReport } from "./template";
 
 export * from "./candidate";
 export { renderReport } from "./template";
+export { sendReport, reportSubject, reportBody } from "./send";
 export type { ReportInput } from "./template";
 
 /**
