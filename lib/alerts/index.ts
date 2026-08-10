@@ -3,6 +3,7 @@ import "server-only";
 import { after } from "next/server";
 
 import { createAdminClient } from "../db/admin";
+import { MAX_ALERT_AGE_HOURS, decidirAlerta } from "./decision";
 import { dayInZone, startOfDayInZone } from "../time";
 import { sendEmail } from "./resend";
 import {
@@ -16,8 +17,14 @@ import {
 /** docs/05, sección 4 "Condición". Umbral global, no configurable por cliente. */
 export const LOW_RATING_THRESHOLD = 2;
 
+/**
+ * El tope diario y el límite de antigüedad viven en `./decision`, puros y sin
+ * dependencias, y se reexportan desde aquí para no romper a quien ya los
+ * importaba de este módulo.
+ */
+export * from "./decision";
+
 /** docs/05, "Reglas anti-saturación". */
-export const DAILY_INDIVIDUAL_LIMIT = 5;
 export const WEEKLY_OPERATOR_THRESHOLD = 15;
 
 /**
@@ -30,17 +37,12 @@ export const WEEKLY_OPERATOR_THRESHOLD = 15;
  */
 export const PARTIAL_ALERT_DELAY_MINUTES = 30;
 
-/**
- * Antigüedad máxima para enviar. Pasado el plazo la alerta se registra pero no
- * se envía: avisar de una valoración de hace tres días no es un aviso, es ruido.
- */
-export const MAX_ALERT_AGE_HOURS = 48;
-
 export type AlertOutcome =
   | { status: "not_applicable"; reason?: string }
   | { status: "already_handled" }
   | { status: "sent" }
-  | { status: "held_for_digest"; todayCount: number }
+  /** `enviadasHoy` son los correos que YA salieron hoy, los que agotaron el cupo. */
+  | { status: "held_for_digest"; enviadasHoy: number }
   | { status: "too_old" }
   | { status: "failed"; error: string };
 
@@ -141,40 +143,43 @@ export async function processAlert(responseId: string): Promise<AlertOutcome> {
 
   if (insertError || !alert) return { status: "already_handled" };
 
+  // Se traen los ESTADOS de las alertas que ese negocio ya tiene hoy, sin la
+  // recién creada. El corte de día es el de Madrid, no el de UTC (lib/time.ts).
+  //
+  // Se piden los estados y no un `count`: el cupo lo consumen solo los correos
+  // que de verdad salieron, y para saberlo hay que mirar el estado de cada uno.
+  // Contar filas era el fallo. El volumen está acotado por el propio tope, así
+  // que traer las filas del día no es caro.
+  const dayStart = startOfDayInZone(dayInZone());
+  const { data: alertasDelDia } = await supabase
+    .from("alerts")
+    .select("status")
+    .eq("business_id", response.business_id)
+    .gte("created_at", dayStart ?? new Date().toISOString())
+    .neq("id", alert.id);
+
+  const decision = decidirAlerta({ edadMs: ageMs, alertasDelDia: alertasDelDia ?? [] });
+
   // Demasiado vieja: se registra la decisión y no se envía. La fila existe, así
   // que la tarea no volverá a evaluar esta respuesta en cada ejecución, y queda
   // constancia de por qué se descartó.
-  if (ageMs > MAX_ALERT_AGE_HOURS * 3600_000) {
-    const horas = Math.floor(ageMs / 3600_000);
+  if (decision.accion === "descartar_vieja") {
     await supabase
       .from("alerts")
       .update({
         status: "not_applicable",
-        error_detail: `No enviada: la respuesta tiene ${horas} h, por encima del límite de ${MAX_ALERT_AGE_HOURS} h.`,
+        error_detail: `No enviada: la respuesta tiene ${decision.horas} h, por encima del límite de ${MAX_ALERT_AGE_HOURS} h.`,
       })
       .eq("id", alert.id);
     return { status: "too_old" };
   }
 
-  // Anti-saturación: cuántas van hoy para este negocio, sin contar la recién
-  // creada. El corte de día es el de Madrid, no el de UTC (lib/time.ts).
-  const dayStart = startOfDayInZone(dayInZone());
-  const { count } = await supabase
-    .from("alerts")
-    .select("id", { count: "exact", head: true })
-    .eq("business_id", response.business_id)
-    .gte("created_at", dayStart ?? new Date().toISOString())
-    .neq("id", alert.id);
-
-  const previousToday = count ?? 0;
-
   // Superado el tope, la fila queda en `pending` y NO se envía email individual.
   // El resumen que las agrupa lo manda la tarea programada, que marcará estas
-  // filas como `sent`. Mientras esa tarea no exista, quedan visibles en
-  // `pending`, que es lo correcto: no se han enviado.
-  if (previousToday >= DAILY_INDIVIDUAL_LIMIT) {
+  // filas como `sent`.
+  if (decision.accion === "retener") {
     await checkWeeklyOperatorNotice(response.business_id, business.name);
-    return { status: "held_for_digest", todayCount: previousToday + 1 };
+    return { status: "held_for_digest", enviadasHoy: decision.enviadasHoy };
   }
 
   const dimensions: AlertDimension[] = (response.answers ?? [])
