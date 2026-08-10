@@ -138,6 +138,9 @@ Tres fuentes, y se consultan en este orden. La primera que resuelve, gana:
 - Selector manual discreto en el pie, siempre visible.
 - El idioma elegido se guarda en la respuesta. Es un dato útil para el cliente.
 - Si el negocio no existe o no tiene idioma válido, castellano.
+- El idioma resuelto se declara en `<html lang>` y también en el `<main>` de la
+  página. Los dos coinciden salvo cuando se usa el selector manual, porque el
+  layout no ve la cadena de consulta; el detalle está en `01-arquitectura.md`.
 
 **Por qué hay un tercer escalón (D32).** La regla original era solo `Accept-Language`:
 catalán si lo pedía, castellano en cualquier otro caso. Eso trataba igual dos

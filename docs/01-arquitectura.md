@@ -50,6 +50,40 @@ formulario funciona sin JavaScript, pasar de la pantalla 2 a la 3 es un `303` de
 servidor, y llevaría a `/f/[code]/gracias` con el mismo coste. Lo que se evita es
 la duplicación de la resolución de datos y de la regla de Google, no el salto.
 
+### No hay un layout raíz único
+
+`app/layout.tsx` no existe. Cada rama tiene el suyo, y los tres renderizan su
+propio `<html>` y `<body>`:
+
+| Layout | Cubre | `<html lang>` |
+|---|---|---|
+| `app/f/[code]/layout.tsx` | Formulario público | Resuelto por negocio y navegador |
+| `app/admin/layout.tsx` | Panel | `es` fijo |
+| `app/(raiz)/layout.tsx` | `/`, marcador de posición | `es` fijo |
+
+Con un layout compartido, `<html lang>` solo podía ser una constante, y era `es`.
+Un negocio que atiende en catalán servía su formulario entero en catalán dentro
+de un documento declarado en castellano: un lector de pantalla lo leía con
+fonética castellana. No se podía arreglar sin separar, porque el panel va siempre
+en castellano (CLAUDE.md) y compartía el mismo `<html>`.
+
+El del formulario cuelga de `[code]` y no de un grupo de rutas más arriba porque
+**un layout solo recibe los parámetros de su propio camino**, y sin el código del
+punto no hay forma de saber el idioma del negocio.
+
+La configuración del punto la necesitan el layout, para el idioma, y la página,
+para pintar. Se resuelve con `getCapturePointConfig()`, envuelta en `cache()` de
+React: se llama dos veces y viaja a Supabase **una**. Medido, la pantalla 1
+completa tarda menos que dos consultas seguidas.
+
+**Lo que este reparto no resuelve.** Un layout no recibe la cadena de consulta,
+así que el layout del formulario no ve `?lang=`, el selector manual del pie. El
+middleware podría inyectarla, pero su matcher tiene prohibido alcanzar `/f`
+(D21). Consecuencia: cuando alguien cambia de idioma a mano, el `<html>` conserva
+el de partida. Para cubrirlo, la página marca `lang` en su propio `<main>`, que
+es la técnica de "idioma de las partes" de WCAG. En una visita normal, entrar y
+responder, los dos coinciden.
+
 ---
 
 ## Rendimiento del formulario público

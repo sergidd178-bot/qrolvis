@@ -16,6 +16,7 @@
 import { Fragment } from "react";
 import { headers } from "next/headers";
 
+import { getCapturePointConfig } from "@/lib/db/capturePointConfig";
 import { createPublicClient } from "@/lib/db/client";
 import { readOverallRating } from "@/lib/db/responses";
 import {
@@ -81,7 +82,11 @@ function Shell({
 }) {
   const other: Language = language === "ca" ? "es" : "ca";
   return (
-    <main className={shell.shell}>
+    // `lang` aquí además de en el <html>: el layout no ve `?lang=`, así que
+    // cuando alguien usa el selector del pie el <html> conserva el idioma de
+    // partida y es este contenedor el que declara en qué lengua está de verdad
+    // lo que se lee. En la inmensa mayoría de visitas los dos coinciden.
+    <main className={shell.shell} lang={language}>
       {children}
       <footer style={{ marginTop: "2rem", fontSize: "0.75rem", textAlign: "center" }}>
         {/* Los dos enlaces conservan s y r para no perder la respuesta en curso. */}
@@ -396,13 +401,11 @@ export default async function CapturePointPage({ params, searchParams }: PagePro
   const { s, r, lang, blocked, privacidad } = await searchParams;
 
   const requestHeaders = await headers();
-  const supabase = createPublicClient();
 
-  // La configuración se lee ANTES de resolver el idioma, porque el idioma del
-  // negocio es el último escalón de la regla. No añade latencia: esta consulta
-  // ya se hacía y sigue siendo la única de la pantalla 1.
-  const { data: configRows } = await supabase.rpc("capture_point_config", { p_code: code });
-  const config = configRows?.[0];
+  // Misma llamada que ya hizo el layout: `getCapturePointConfig` está envuelta
+  // en `cache()`, así que a Supabase se va UNA vez por petición. La consulta se
+  // lee antes de resolver el idioma porque el del negocio es el último escalón.
+  const config = await getCapturePointConfig(code);
 
   const language = resolveLanguage({
     param: lang,
@@ -416,7 +419,7 @@ export default async function CapturePointPage({ params, searchParams }: PagePro
   // pausado muestran el mismo mensaje neutro. La función unifica los tres.
   if (!config) {
     return (
-      <main style={{ padding: "2rem", textAlign: "center" }}>
+      <main style={{ padding: "2rem", textAlign: "center" }} lang={language}>
         <p>{t.unavailable}</p>
       </main>
     );
@@ -458,7 +461,10 @@ export default async function CapturePointPage({ params, searchParams }: PagePro
   }
 
   if (s === "2" && r) {
-    const { data: questions } = await supabase
+    // Segunda consulta, y solo en la pantalla 2: la 1 y la 3 siguen con una
+    // sola. Aquí sí hace falta, porque las preguntas dependen del conjunto que
+    // acaba de devolver la configuración.
+    const { data: questions } = await createPublicClient()
       .from("questions")
       .select("id, type, text_es, text_ca, position")
       .eq("question_set_id", config.question_set_id)
