@@ -136,12 +136,47 @@ Se repite el patrón ya visto: la primera de las tres ejecuciones sale alta (963
 981 y 954 ms en las tres tandas de producción de hoy) y las dos siguientes se
 estabilizan. Conviene seguir leyendo la mediana de tres y no una sola ejecución.
 
+## Cuatro mejoras visuales: sombra, gradientes y patrón de fondo
+
+Medido por tandas aisladas contra producción, para poder atribuir el coste a
+cada cambio en vez de a todos juntos. Todas las ejecuciones son Lighthouse
+`simulate` sobre `/f/<codigo>`, pantalla 1.
+
+| Tanda | Qué añade | n | FCP mediana | Δ sobre la base |
+|---|---|---|---|---|
+| Base | estado tras el rediseño de color | 5 | **853 ms** | — |
+| A | sombra sutil en la tarjeta + separadores con degradado | 5 | **848 ms** | −5 ms |
+| B | gradiente radial de fondo al 4 % | 9 | **847 ms** | −6 ms |
+| C | patrón de textura SVG en `data:` URI, tesela de 96×96 | 7 | **855 ms** | **+2 ms** |
+
+El presupuesto disponible eran 145 ms hasta el límite de R9. El coste real de las
+cuatro mejoras juntas queda dentro del ruido de medición: A y B salen incluso por
+debajo de la base, lo que confirma que su coste es indistinguible de cero.
+
+El patrón de la tanda C era el candidato a caer —es el único que obliga al
+navegador a componer una imagen— y se aprobó porque su coste medido fue de 8 ms
+en la comparación que se hizo en su momento contra la tanda B. La diferencia de
+medianas frente a la base queda en +2 ms.
+
+TBT no empeora en ninguna tanda (97 → 86 → 110 → 46 ms): era la duda razonable
+con el patrón, y no se materializa. LCP sí sube de 937 ms a ~1.700 ms a partir de
+la tanda A, pero el elemento LCP cambia con la sombra y el degradado, así que las
+dos cifras no miden lo mismo y no son comparables entre sí.
+
+**Estas medidas no se pueden reproducir tal cual**: se tomaron contra el punto de
+captación `5JHT8RJ2`, borrado al vaciar la base de datos. Para repetirlas hay que
+crear un negocio y un punto nuevos.
+
 ## Archivos
 
 - `lighthouse-f-code-iad1.report.json` — antes del cambio de región
 - `lighthouse-f-code-fra1.report.json` — después del cambio de región
 - `lighthouse-f-code-fra1-dedup.report.json` — tras deduplicar la pantalla 2
 - `lighthouse-f-code-fra1-color.report.json` — tras el rediseño de color
+- `lighthouse-f-code-visual-base.report.json` — base de las tandas visuales
+- `lighthouse-f-code-visual-tanda-a.report.json` — sombra y separadores
+- `lighthouse-f-code-visual-tanda-b.report.json` — gradiente radial
+- `lighthouse-f-code-visual-tanda-c.report.json` — patrón de textura
 - `lighthouse-admin-login-iad1.report.json` — antes
 - `lighthouse-admin-login-fra1.report.json` — después
 
