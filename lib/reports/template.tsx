@@ -5,7 +5,7 @@ import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-p
 import { formatInZone } from "../time";
 import { mesLargo } from "./month";
 import type { MonthlyMetrics } from "../metrics";
-import type { MetricState } from "../metrics/types";
+import type { MetricState, PuntoDimensiones } from "../metrics/types";
 
 /**
  * Informe mensual. Estructura literal de docs/05 §3.
@@ -77,6 +77,11 @@ const s = StyleSheet.create({
   thTexto: { fontSize: 8, color: C.suave },
   colDim: { flexGrow: 1 },
   colNum: { width: 62, textAlign: "right" },
+
+  // Desglose por punto (§2.8.1). Sangrado para que se lea como lo que es: el
+  // detalle de la tabla de arriba, no otra sección.
+  tablaPunto: { marginTop: 12, paddingLeft: 10 },
+  subtituloPunto: { fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 3 },
 
   // Comentarios
   comentario: { marginBottom: 9, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: C.linea },
@@ -233,6 +238,42 @@ function Comentarios({ m }: { m: MonthlyMetrics }) {
   );
 }
 
+/**
+ * Las dimensiones de un punto (§2.8.1). Una tabla por punto y no una cruzada:
+ * con cuatro dimensiones y tres profesionales, la cruzada obliga a leer en dos
+ * direcciones a la vez y esto se lee en el móvil.
+ *
+ * Se pinta aunque todas sus filas salgan en guion: la columna de respuestas
+ * explica por qué, y hacer desaparecer al profesional se leería como un fallo.
+ */
+function TablaDePunto({ punto }: { punto: PuntoDimensiones }) {
+  return (
+    <View style={s.tablaPunto} wrap={false}>
+      <Text style={s.subtituloPunto}>{punto.label}</Text>
+      <View style={s.th}>
+        <Text style={[s.thTexto, s.colDim]}>Aspecto</Text>
+        <Text style={[s.thTexto, s.colNum]}>Media</Text>
+        <Text style={[s.thTexto, s.colNum]}>Respuestas</Text>
+        <Text style={[s.thTexto, s.colNum]}>vs. mes ant.</Text>
+      </View>
+      {punto.dimensiones.map((d) => (
+        <View key={d.code} style={s.td}>
+          <Text style={s.colDim}>{d.label}</Text>
+          {/* `media` es `number | null` y el null es el guion. No se puede
+              escribir un 0 aquí ni por descuido: TypeScript no lo permite. */}
+          <Text style={[s.colNum, d.media === null ? { color: C.suave } : {}]}>
+            {d.media === null ? "—" : d.media}
+          </Text>
+          <Text style={[s.colNum, { color: C.suave }]}>{d.nD}</Text>
+          <Text style={[s.colNum, { color: C.suave }]}>
+            {d.delta === null ? "—" : `${d.delta > 0 ? "+" : ""}${d.delta}`}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function PorPunto({ m }: { m: MonthlyMetrics }) {
   // OMITIDA: la sección entera desaparece. Sin encabezado huérfano ni
   // "no disponible", que es una forma de enseñar el hueco.
@@ -253,11 +294,19 @@ function PorPunto({ m }: { m: MonthlyMetrics }) {
           <Text style={[s.colNum, { color: C.suave }]}>{p.n}</Text>
         </View>
       ))}
-      {/* Aviso exigido por §2.8, literal en su intención. */}
+
+      {/* El desglose de cada punto, en el mismo orden que la tabla de arriba. */}
+      {m.puntosDimensiones.status === "OK" &&
+        m.puntosDimensiones.value.map((p) => <TablaDePunto key={p.capturePointId} punto={p} />)}
+
+      {/* Aviso exigido por §2.8, literal en su intención. Va UNA vez, al final
+          del bloque entero: repetirlo bajo cada tabla lo convertiría en ruido y
+          dejaría de leerse, que es justo lo contrario de para lo que está. */}
       <Text style={s.aviso}>
         Los volúmenes por punto son pequeños y las diferencias pueden deberse al azar.
         Tómalo como una observación, no como una evaluación de desempeño.
       </Text>
+      <Text style={s.aviso}>Los promedios con pocas respuestas pueden no ser representativos.</Text>
     </View>
   );
 }

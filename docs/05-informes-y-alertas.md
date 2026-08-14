@@ -23,6 +23,7 @@ explicativo, **nunca un número**.
 | Puntuación por dimensión | 10 por dimensión | `INSUFICIENTE` para esa dimensión |
 | Comparativa con el periodo anterior | 20 en **ambos** periodos | Se omite la comparativa |
 | Desglose por punto de captación | 15 por punto | Se omite ese punto |
+| Media por dimensión dentro de un punto (2.8.1) | 10 por punto y dimensión | `—` para esa dimensión |
 | Comentarios | 1 | Siempre se muestran |
 
 Esta lógica vive en `/lib/metrics`, no en la plantilla del informe. La plantilla
@@ -154,9 +155,56 @@ media_punto = media de overall_rating de las respuestas de ese punto
 En estética, cuando los puntos son profesionales, esta sección es la más valiosa
 del informe.
 
+#### 2.8.1 Media por dimensión dentro de cada punto
+
+Para cada punto `p` ya incluido en el desglose y cada dimensión `d` del conjunto de
+preguntas del negocio, sobre las respuestas `complete` de ese punto que contestaron
+esa pregunta (R-M3 se aplica igual que en 2.6):
+
+```
+N_d_p     = número de respuestas complete del punto p con valor en la dimensión d
+media_d_p = Σ(valor) / N_d_p        si N_d_p >= 10
+          = "—"                     si N_d_p < 10
+delta_d_p = media_d_p(actual) − media_d_p(anterior)
+            solo si N_d_p >= 10 en AMBOS periodos
+```
+
+| Caso | Qué se publica |
+|---|---|
+| `N_d_p < 10` | `—`, junto al número de respuestas que sí hubo. Nunca una media, y nunca un 0: «sin muestra» y «puntuación cero» son cosas distintas |
+| `N_d_p >= 10` | La media, con un decimal |
+| `N_d_p >= 10` en el mes actual **y** en el anterior | Además, `delta_d_p` con signo y un decimal |
+| `N_d_p >= 10` en solo uno de los dos | Sin delta, y **no es un error**. La media del periodo que sí llega se publica igual |
+
+Es la muestra mínima de siempre. Este bloque **no introduce ninguna excepción** a
+R-M1 ni a R-M2: 2.6 exige `N_d >= 10` para el negocio entero y 2.8.1 exige lo mismo
+para el cruce más fino de punto × dimensión. Lo único que cambia es sobre qué
+conjunto se cuenta.
+
+«Se publica la media» y «se calcula el delta» son **dos condiciones distintas que hoy
+coinciden en el número 10**. Coinciden, no son la misma regla: si algún día una de
+las dos se mueve, se mueve sola.
+
+El umbral de `N >= 15` por punto de esta sección **decide si el punto entra en el
+desglose**, no si se calculan sus medias por dimensión. Una vez el punto está dentro,
+sus dimensiones se rigen por la tabla de arriba.
+
+La comparativa general de 2.7 **no cambia**: sigue exigiendo `N_d >= 20` en ambos
+periodos y sigue calculándose sobre el negocio entero, nunca por punto. Son dos
+métricas distintas con dos umbrales distintos, y deben poder evolucionar por separado.
+
+**Qué respuestas entran, que aquí despista:** `media_punto` usa TODAS las respuestas
+del punto (R-M3, valoración global) y `media_d_p` solo las `complete`. Es la misma
+asimetría que ya existe entre 2.2 y 2.6, así que el `N` de un punto y el `N_d_p` de
+sus dimensiones no tienen por qué coincidir, y no coincidir no es un fallo.
+
 **Aviso a incluir en el propio informe:** los volúmenes por punto suelen ser
 pequeños y las diferencias entre profesionales pueden deberse al azar. El informe
 debe presentarlo como observación, no como evaluación de desempeño.
+**Segunda línea, obligatoria desde el desglose por dimensión:** los promedios con
+pocas respuestas pueden no ser representativos. Sigue aplicando aunque 2.8.1 exija
+`N_d_p >= 10`: diez respuestas superan la muestra mínima, pero no convierten una
+diferencia de dos décimas entre profesionales en un hecho.
 
 ### 2.9 Comentarios
 
@@ -213,7 +261,32 @@ Comentarios íntegros. Es la sección que más se lee. No se recorta.
 
 ### Bloque 4 — Por punto de captación
 
-Solo si aplica, con el aviso del punto 2.8.
+Solo si aplica, con el aviso del punto 2.8, que aquí son dos líneas.
+
+Dos partes:
+
+1. La tabla que ya existía: una fila por punto, con su media global y su número de
+   respuestas.
+2. **Una tabla por cada punto**, con sus dimensiones. No una tabla única que cruce
+   puntos y dimensiones: con cuatro dimensiones y tres profesionales obliga a leer en
+   dos direcciones a la vez, y esto se lee en el móvil.
+
+Cada tabla lleva el nombre del punto y una fila por dimensión del sector, con:
+
+- La media de esa dimensión en ese punto, un decimal, o `—` si `N_d_p < 10`
+- El número de respuestas de esa dimensión en ese punto, siempre, también junto al `—`:
+  es lo que distingue «aún no hay muestra» de «esto está roto»
+- El delta con signo y un decimal cuando exista (2.8.1); cuando no, `—`
+
+Orden de las filas: el mismo criterio que el Bloque 2, de peor a mejor, según la media
+de **ese** punto. Las dimensiones sin dato (`—`) van todas al final, detrás de las que
+tienen valor, para no romper el orden de las que sí se pueden leer. Empates, por `code`.
+
+La tabla de un punto se pinta aunque todas sus dimensiones salgan `—`: la columna de
+respuestas explica por qué, y hacer desaparecer al profesional del informe sin decir
+nada se leería como un fallo.
+
+El aviso va una sola vez, al final del bloque entero, no bajo cada tabla.
 
 ### Bloque 5 — Recomendación del mes
 
@@ -329,3 +402,10 @@ Casos que deben estar cubiertos:
   agrupa correctamente por `code`, no por identificador de pregunta
 - Respuesta justo en el límite del periodo (23:59 del último día): se incluye
 - Zona horaria: una respuesta a las 00:30 del día 1 pertenece al mes nuevo
+- Punto con `N_d_p = 9` en una dimensión: se publica `—`, nunca la media
+- Punto con `N_d_p = 10`: se publica la media. Es el corte exacto
+- Punto con `N_d_p >= 10` en ambos periodos: se calcula `delta_d_p`
+- Punto con `N_d_p >= 10` en un periodo y `< 10` en el otro: sin delta y sin error,
+  y la media del periodo que sí cumple se publica igual
+- Negocio con un solo punto de captación: el bloque entero no aparece. Regla ya
+  existente de 2.8; se verifica que el desglose por dimensión no la ha roto

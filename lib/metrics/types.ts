@@ -55,6 +55,18 @@ export const MIN_N = {
   comparativa: 20,
   /** R-M1: 15 por punto. */
   punto: 15,
+  /** §2.8.1: 10 por punto Y dimensión. La misma muestra mínima de 2.6, sobre una
+   *  rejilla más fina. No es una excepción a R-M1 (D33). */
+  dimensionPunto: 10,
+  /**
+   * §2.8.1: 10 en AMBOS periodos para el delta por punto.
+   *
+   * Vale lo mismo que `dimensionPunto` y aun así es una constante aparte, porque
+   * son dos condiciones distintas que hoy coinciden en el número: "se publica la
+   * media" y "se puede afirmar una tendencia". El documento lo dice con esas
+   * palabras. Si algún día una de las dos se mueve, se mueve sola.
+   */
+  comparativaPunto: 10,
   /** R-M1: siempre se muestran. */
   comentarios: 1,
 } as const;
@@ -115,6 +127,38 @@ export type PuntoScore = {
   label: string;
   n: number;
   media: number;
+};
+
+/**
+ * Una dimensión dentro de un punto de captación. §2.8.1.
+ *
+ * `media` y `delta` son `number | null`, y aquí el `null` SÍ es correcto aunque
+ * `MetricState` exista para evitarlo: no es una métrica que se publique suelta,
+ * es una celda de una tabla que el informe pinta entera. Envolver cada celda en
+ * su propio estado obligaría a la plantilla a hacer un `switch` por casilla para
+ * acabar escribiendo el mismo guion en todas las ramas.
+ *
+ * Lo que no puede pasar es confundir el guion con un cero, y eso lo impide el
+ * tipo: `null` no es asignable a `number`, así que un `?? 0` distraído no cuela.
+ * `nD` va SIEMPRE, también cuando `media` es null: es lo que distingue "aún no
+ * hay muestra" de "esto está roto".
+ */
+export type DimensionPunto = {
+  code: string;
+  label: string;
+  /** Respuestas `complete` de ese punto con valor en esa dimensión. */
+  nD: number;
+  /** null = por debajo de MIN_N.dimensionPunto. El informe pinta "—". */
+  media: number | null;
+  /** null = no se puede comparar con el mes anterior. El informe pinta "—". */
+  delta: number | null;
+};
+
+export type PuntoDimensiones = {
+  capturePointId: string;
+  label: string;
+  /** Peor a mejor por media; las que no llegan a muestra, al final. */
+  dimensiones: DimensionPunto[];
 };
 
 export type ComentarioRow = {

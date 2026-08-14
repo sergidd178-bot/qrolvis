@@ -18,6 +18,7 @@ import {
   computePeriod,
   detractoresPct,
   dimensiones,
+  dimensionesPorPunto,
   distribucion,
   finalizacionPct,
   media,
@@ -438,5 +439,141 @@ describe("Zona horaria: una respuesta a las 00:30 del día 1 pertenece al mes nu
   it("en invierno el desfase es +01:00 y el corte cambia", () => {
     // Enero: CET. El mes empieza a las 23:00Z del 31 de diciembre.
     expect(monthPeriod("2026-01").startUtc).toBe("2025-12-31T23:00:00.000Z");
+  });
+});
+
+// =============================================================================
+// §2.8.1 · Dimensiones dentro de cada punto de captación (D33)
+// =============================================================================
+
+/** Un punto con `n` respuestas completas, suficientes para entrar en 2.8. */
+function punto(id: string, label: string, n = 15) {
+  return conValoracion(3, n, { capturePointId: id, capturePointLabel: label });
+}
+
+/** Los dos puntos mínimos para que el bloque exista, ya con muestra. */
+function dosPuntos() {
+  const a = punto("a", "Ana");
+  const b = punto("b", "Berta");
+  return { a, b, todas: [...a, ...b] };
+}
+
+/** La dimensión `code` de un punto, ya buscada. */
+function dimensionDe(
+  estado: ReturnType<typeof dimensionesPorPunto>,
+  puntoId: string,
+  code: string,
+) {
+  if (estado.status !== "OK") throw new Error(`se esperaba OK y salió ${estado.status}`);
+  const p = estado.value.find((x) => x.capturePointId === puntoId);
+  if (!p) throw new Error(`el punto ${puntoId} no está en el desglose`);
+  return p.dimensiones.find((d) => d.code === code);
+}
+
+describe("Punto con N_d_p = 9: se publica un guion, nunca la media", () => {
+  const { a, todas } = dosPuntos();
+  const as = answersPara(a.slice(0, 9), "speed", 2);
+  const estado = dimensionesPorPunto(todas, as, [], []);
+
+  it("la media es null, que es lo que la plantilla pinta como guion", () => {
+    const d = dimensionDe(estado, "a", "speed");
+    expect(d?.media).toBeNull();
+  });
+
+  it("el número de respuestas sí se publica: es lo que distingue 'sin muestra' de 'roto'", () => {
+    expect(dimensionDe(estado, "a", "speed")?.nD).toBe(9);
+  });
+
+  it("null y 0 no se confunden: con 2 de media, un 0 sería una mentira", () => {
+    // Si esto fuera 0, el informe diría que el punto puntúa cero en esa
+    // dimensión cuando lo que pasa es que no hay muestra para decir nada.
+    expect(dimensionDe(estado, "a", "speed")?.media).not.toBe(0);
+  });
+});
+
+describe("Punto con N_d_p = 10: se publica la media. Es el corte exacto", () => {
+  const { a, todas } = dosPuntos();
+  const estado = dimensionesPorPunto(todas, answersPara(a.slice(0, 10), "speed", 4), [], []);
+
+  it("con exactamente 10 la media sale", () => {
+    const d = dimensionDe(estado, "a", "speed");
+    expect(d?.nD).toBe(10);
+    expect(d?.media).toBe(4);
+  });
+});
+
+describe("Punto con N_d_p >= 10 en ambos periodos: se calcula delta_d_p", () => {
+  const { a, todas } = dosPuntos();
+  const anteriores = punto("a", "Ana", 12);
+
+  const estado = dimensionesPorPunto(
+    todas,
+    answersPara(a.slice(0, 10), "speed", 4),
+    anteriores,
+    answersPara(anteriores.slice(0, 10), "speed", 3),
+  );
+
+  it("el delta es la diferencia de medias, con signo y un decimal", () => {
+    const d = dimensionDe(estado, "a", "speed");
+    expect(d?.media).toBe(4);
+    expect(d?.delta).toBe(1);
+  });
+
+  it("el punto que no tiene valoraciones de esa dimensión la lista igual, con guion", () => {
+    // No desaparece de su tabla: eso daría a entender que a ese punto se le
+    // hacen otras preguntas.
+    const d = dimensionDe(estado, "b", "speed");
+    expect(d?.nD).toBe(0);
+    expect(d?.media).toBeNull();
+    expect(d?.delta).toBeNull();
+  });
+});
+
+describe("Punto con N_d_p >= 10 en un periodo y < 10 en el otro: sin delta y sin error", () => {
+  const { a, todas } = dosPuntos();
+  const anteriores = punto("a", "Ana", 12);
+
+  const estado = dimensionesPorPunto(
+    todas,
+    answersPara(a.slice(0, 10), "speed", 4),
+    anteriores,
+    answersPara(anteriores.slice(0, 9), "speed", 3),
+  );
+
+  it("no hay delta: 9 en el mes anterior no basta", () => {
+    expect(dimensionDe(estado, "a", "speed")?.delta).toBeNull();
+  });
+
+  it("pero la media del periodo que sí cumple se publica igual", () => {
+    expect(dimensionDe(estado, "a", "speed")?.media).toBe(4);
+  });
+});
+
+describe("Negocio con un solo punto de captación: el bloque no aparece", () => {
+  const solo = punto("a", "Ana", 40);
+
+  it("se omite, como ya hacía la tabla de 2.8", () => {
+    const estado = dimensionesPorPunto(solo, answersPara(solo, "speed", 4), [], []);
+    expect(estado.status).toBe("OMITIDA");
+  });
+
+  it("la tabla de medias de 2.8 dice exactamente lo mismo: las dos incluyen los mismos puntos", () => {
+    expect(puntos(solo).status).toBe("OMITIDA");
+  });
+});
+
+describe("Orden dentro de la tabla de un punto: peor a mejor, guiones al final", () => {
+  const { a, todas } = dosPuntos();
+  const as = [
+    ...answersPara(a.slice(0, 10), "cleanliness", 5),
+    ...answersPara(a.slice(0, 10), "speed", 2),
+    ...answersPara(a.slice(0, 9), "staff", 1), // no llega a muestra: al final
+  ];
+  const estado = dimensionesPorPunto(todas, as, [], []);
+
+  it("las que tienen dato van primero y de peor a mejor; la de 1 de media no encabeza por no tener muestra", () => {
+    if (estado.status !== "OK") throw new Error("se esperaba OK");
+    const p = estado.value.find((x) => x.capturePointId === "a")!;
+    expect(p.dimensiones.map((d) => d.code)).toEqual(["speed", "cleanliness", "staff"]);
   });
 });

@@ -18,10 +18,12 @@ import {
   type ComentarioRow,
   type DeltaDimension,
   type DimensionAnswerRow,
+  type DimensionPunto,
   type DimensionScore,
   type Distribucion,
   type MetricState,
   type PeriodMetrics,
+  type PuntoDimensiones,
   type PuntoScore,
   type ResponseRow,
 } from "./types";
@@ -194,6 +196,41 @@ export function dimensiones(
  * la valoración global las usa todas.
  */
 export function puntos(responses: ResponseRow[]): MetricState<PuntoScore[]> {
+  const seleccion = puntosIncluidos(responses);
+  if (!seleccion.ok) return omitted(seleccion.n, seleccion.required);
+
+  const scores: PuntoScore[] = seleccion.incluidos.map((p) => {
+    const suma = p.rows.reduce((acc, r) => acc + r.overallRating, 0);
+    return {
+      capturePointId: p.id,
+      label: p.label,
+      n: p.rows.length,
+      media: unDecimal(suma / p.rows.length),
+    };
+  });
+
+  scores.sort(ordenDePuntos);
+  return ok(scores);
+}
+
+/**
+ * Qué puntos entran en el desglose de §2.8: los de un negocio con más de un
+ * punto, y solo los que llegan a `MIN_N.punto`.
+ *
+ * Está aparte porque lo necesitan DOS métricas —la tabla de medias de 2.8 y el
+ * desglose por dimensión de 2.8.1— y las dos tienen que incluir exactamente los
+ * mismos puntos. Si cada una lo decidiera por su cuenta, el informe podría
+ * enseñar una tabla de dimensiones de un profesional que no aparece en la tabla
+ * de arriba, y nadie sabría cuál de las dos miente.
+ *
+ * Devuelve el motivo ya medido cuando no aplica, para que quien llame construya
+ * su `OMITIDA` sin repetir el recuento.
+ */
+type PuntosIncluidos =
+  | { ok: true; incluidos: { id: string; label: string; rows: ResponseRow[] }[] }
+  | { ok: false; n: number; required: number };
+
+function puntosIncluidos(responses: ResponseRow[]): PuntosIncluidos {
   const porPunto = new Map<string, ResponseRow[]>();
   for (const r of responses) {
     const lista = porPunto.get(r.capturePointId) ?? [];
@@ -202,27 +239,153 @@ export function puntos(responses: ResponseRow[]): MetricState<PuntoScore[]> {
   }
 
   // "Solo para negocios con más de un punto activo".
-  if (porPunto.size < 2) return omitted(porPunto.size, 2);
+  if (porPunto.size < 2) return { ok: false, n: porPunto.size, required: 2 };
 
-  const scores: PuntoScore[] = [];
-  for (const [id, lista] of porPunto) {
-    if (lista.length < MIN_N.punto) continue;
-    const suma = lista.reduce((acc, r) => acc + r.overallRating, 0);
-    scores.push({
-      capturePointId: id,
-      label: lista[0]!.capturePointLabel,
-      n: lista.length,
-      media: unDecimal(suma / lista.length),
-    });
-  }
+  const incluidos = [...porPunto.entries()]
+    .filter(([, lista]) => lista.length >= MIN_N.punto)
+    .map(([id, rows]) => ({ id, label: rows[0]!.capturePointLabel, rows }));
 
-  if (scores.length === 0) {
+  if (incluidos.length === 0) {
     const mayor = Math.max(...[...porPunto.values()].map((l) => l.length));
-    return omitted(mayor, MIN_N.punto);
+    return { ok: false, n: mayor, required: MIN_N.punto };
   }
 
-  scores.sort((a, b) => a.media - b.media || a.label.localeCompare(b.label));
-  return ok(scores);
+  return { ok: true, incluidos };
+}
+
+/** Orden de los puntos: peor media primero, empates por etiqueta. */
+function ordenDePuntos(a: { media: number; label: string }, b: { media: number; label: string }) {
+  return a.media - b.media || a.label.localeCompare(b.label);
+}
+
+/**
+ * Valores de dimensión agrupados por punto y por `code`, solo de respuestas
+ * `complete` (R-M3, igual que 2.6).
+ */
+function valoresPorPuntoYCodigo(
+  responses: ResponseRow[],
+  answers: DimensionAnswerRow[],
+): Map<string, Map<string, number[]>> {
+  const puntoDe = new Map<string, string>();
+  for (const r of responses) {
+    if (r.completeness === "complete") puntoDe.set(r.id, r.capturePointId);
+  }
+
+  const porPunto = new Map<string, Map<string, number[]>>();
+  for (const a of answers) {
+    const punto = puntoDe.get(a.responseId);
+    if (!punto) continue;
+    if (!(a.value >= 1 && a.value <= 5)) continue;
+
+    const porCodigo = porPunto.get(punto) ?? new Map<string, number[]>();
+    const valores = porCodigo.get(a.code) ?? [];
+    valores.push(a.value);
+    porCodigo.set(a.code, valores);
+    porPunto.set(punto, porCodigo);
+  }
+  return porPunto;
+}
+
+const mediaDe = (valores: number[]) => valores.reduce((s, v) => s + v, 0) / valores.length;
+
+/**
+ * §2.8.1 · Media de cada dimensión DENTRO de cada punto de captación.
+ *
+ *   N_d_p     = respuestas complete del punto p con valor en la dimensión d
+ *   media_d_p = Σ(valor) / N_d_p     si N_d_p >= 10, y "—" (null) si no
+ *   delta_d_p = media_d_p(actual) − media_d_p(anterior)
+ *               solo si N_d_p >= 10 en AMBOS periodos
+ *
+ * FUNCIÓN APARTE DE `dimensiones()` A PROPÓSITO (D33). Calculan cosas parecidas
+ * con umbrales que hoy coinciden, y precisamente por eso convenía separarlas: si
+ * mañana uno de los dos se mueve, aquí no hay que desenredar nada. Tampoco
+ * comparten el delta con `comparativa()`, que exige 20 y mira el negocio entero.
+ *
+ * NO ES UNA EXCEPCIÓN A R-M1. Es la misma muestra mínima de 2.6 aplicada al
+ * cruce punto × dimensión. Por debajo de 10 se devuelve `media: null` y el
+ * informe pinta un guion, nunca un número.
+ *
+ * El universo de dimensiones sale de los `code` vistos en el periodo actual, no
+ * de una lista fija: así una dimensión que ese punto no contestó ninguna vez
+ * aparece igualmente con `nD: 0` y su guion, en vez de desaparecer de su tabla y
+ * dar a entender que el conjunto de preguntas de ese punto es otro.
+ */
+export function dimensionesPorPunto(
+  actualResponses: ResponseRow[],
+  actualAnswers: DimensionAnswerRow[],
+  anteriorResponses: ResponseRow[],
+  anteriorAnswers: DimensionAnswerRow[],
+): MetricState<PuntoDimensiones[]> {
+  const seleccion = puntosIncluidos(actualResponses);
+  if (!seleccion.ok) return omitted(seleccion.n, seleccion.required);
+
+  // La etiqueta de cada dimensión, de la versión más alta presente, por el mismo
+  // motivo que en 2.6: si el conjunto se versionó a mitad de mes, manda el texto
+  // más reciente.
+  const etiquetas = new Map<string, string>();
+  const versiones = new Map<string, number>();
+  for (const a of actualAnswers) {
+    if ((versiones.get(a.code) ?? -1) < a.version) {
+      versiones.set(a.code, a.version);
+      etiquetas.set(a.code, a.label);
+    }
+  }
+
+  const ahora = valoresPorPuntoYCodigo(actualResponses, actualAnswers);
+  const antes = valoresPorPuntoYCodigo(anteriorResponses, anteriorAnswers);
+
+  const salida = seleccion.incluidos.map((punto) => {
+    const suyas = ahora.get(punto.id) ?? new Map<string, number[]>();
+    const previas = antes.get(punto.id) ?? new Map<string, number[]>();
+
+    const filas: DimensionPunto[] = [...etiquetas].map(([code, label]) => {
+      const valores = suyas.get(code) ?? [];
+      const anteriores = previas.get(code) ?? [];
+
+      const media = valores.length >= MIN_N.dimensionPunto ? unDecimal(mediaDe(valores)) : null;
+
+      // Condición SEPARADA de la de arriba, aunque hoy sea el mismo número: son
+      // dos afirmaciones distintas y docs/05 §2.8.1 pide que puedan moverse por
+      // separado. Se comprueban los dos periodos, nunca solo el actual.
+      const hayComparativa =
+        valores.length >= MIN_N.comparativaPunto && anteriores.length >= MIN_N.comparativaPunto;
+
+      return {
+        code,
+        label,
+        nD: valores.length,
+        media,
+        delta: hayComparativa ? unDecimal(mediaDe(valores) - mediaDe(anteriores)) : null,
+      };
+    });
+
+    // Peor a mejor por la media de ESTE punto. Las que no llegan a muestra van
+    // todas al final: si se ordenaran como si valieran 0 encabezarían la tabla y
+    // parecerían el problema del mes, que es exactamente lo contrario de lo que
+    // significan.
+    filas.sort((a, b) => {
+      if (a.media === null && b.media === null) return a.code.localeCompare(b.code);
+      if (a.media === null) return 1;
+      if (b.media === null) return -1;
+      return a.media - b.media || a.code.localeCompare(b.code);
+    });
+
+    return {
+      capturePointId: punto.id,
+      label: punto.label,
+      dimensiones: filas,
+      // Solo para ordenar los puntos entre sí; no sale del `map`.
+      mediaGlobal: unDecimal(
+        punto.rows.reduce((acc, r) => acc + r.overallRating, 0) / punto.rows.length,
+      ),
+    };
+  });
+
+  // Mismo orden que la tabla de medias de 2.8, para que quien lea el informe
+  // encuentre las tablas en el orden en el que acaba de ver los puntos.
+  salida.sort((a, b) => ordenDePuntos({ media: a.mediaGlobal, label: a.label }, { media: b.mediaGlobal, label: b.label }));
+
+  return ok(salida.map(({ capturePointId, label, dimensiones }) => ({ capturePointId, label, dimensiones })));
 }
 
 /**

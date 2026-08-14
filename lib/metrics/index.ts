@@ -1,9 +1,9 @@
 import "server-only";
 
-import { comparativa, computePeriod } from "./compute";
+import { comparativa, computePeriod, dimensionesPorPunto } from "./compute";
 import { loadPeriod } from "./load";
 import { monthPeriod, previousMonth } from "./period";
-import type { DeltaDimension, MetricState, PeriodMetrics } from "./types";
+import type { DeltaDimension, MetricState, PeriodMetrics, PuntoDimensiones } from "./types";
 
 export * from "./types";
 export * from "./compute";
@@ -13,6 +13,13 @@ export type MonthlyMetrics = PeriodMetrics & {
   month: string;
   businessId: string;
   comparativa: MetricState<DeltaDimension[]>;
+  /**
+   * §2.8.1 · Las dimensiones de cada punto de captación, con su delta.
+   *
+   * Vive aquí y no en `computePeriod` por el mismo motivo que `comparativa`:
+   * necesita los dos periodos, y `computePeriod` solo recibe uno.
+   */
+  puntosDimensiones: MetricState<PuntoDimensiones[]>;
   /**
    * Volumen del mes anterior, en crudo.
    *
@@ -47,6 +54,12 @@ export async function monthlyMetrics(
     businessId,
     ...computePeriod(ahora.responses, ahora.answers),
     comparativa: comparativa(ahora.responses, ahora.answers, antes.responses, antes.answers),
+    puntosDimensiones: dimensionesPorPunto(
+      ahora.responses,
+      ahora.answers,
+      antes.responses,
+      antes.answers,
+    ),
     volumenAnterior: antes.responses.length,
   };
 }
