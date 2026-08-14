@@ -6,6 +6,7 @@ import { monthlyMetrics } from "../metrics";
 import { monthPeriod, previousMonth } from "../metrics/period";
 import { dayInZone } from "../time";
 import { proposeCandidate, type Candidate } from "./candidate";
+import { decimal, porcentaje } from "./format";
 import { mesLargo } from "./month";
 
 /**
@@ -215,14 +216,28 @@ Los tienes en el panel, en Informes, eligiendo el negocio y ${report.month}.
 ${avisos.length > 0 ? `\n${avisos.join("\n")}\n` : ""}`;
 }
 
+/**
+ * La propuesta de cada negocio, en una línea.
+ *
+ * LAS CIFRAS VAN CON COMA, como en el PDF, y con las mismas funciones de
+ * `./format` que usa la plantilla. Esto es correo interno y podría dar igual,
+ * salvo por una cosa: este texto es lo que el operador tiene delante cuando se
+ * sienta a escribir el Bloque 5, y lo natural es copiarlo. Si aquí pusiera "3.5
+ * de media", ese punto acabaría dentro del informe que lee el cliente por la
+ * puerta de atrás, justo después de haberlo quitado de la plantilla.
+ *
+ * Los CONTEOS siguen siendo enteros: 12 respuestas, no "12,0".
+ */
 function resumenCandidato(c: Candidate): string {
   switch (c.tipo) {
     case "dimension_peor":
-      return `Propuesta: ${c.label}, ${c.media} de media y ${c.detractoresPct} % de 2 o menos.`;
+      return `Propuesta: ${c.label}, ${decimal(c.media)} de media y ${porcentaje(c.detractoresPct)} de 2 o menos.`;
+    // Sin `conSigno`: la frase ya dice "ha bajado", y un "-0,4" detrás lo
+    // convertiría en una doble negación que se lee como una subida.
     case "dimension_caida":
-      return `Propuesta: ${c.label}, ha bajado ${Math.abs(c.delta)} puntos.`;
+      return `Propuesta: ${c.label}, ha bajado ${decimal(Math.abs(c.delta))} puntos.`;
     case "volumen":
-      return `Propuesta: el volumen ha caído un ${c.caidaPct} % (${c.actual} frente a ${c.anterior}).`;
+      return `Propuesta: el volumen ha caído un ${porcentaje(c.caidaPct)} (${c.actual} frente a ${c.anterior}).`;
     case "volumen_bajo":
       return `Solo ${c.n} respuestas: por debajo del mínimo para publicar nada. El borrador de volumen bajo ya viene completo.`;
     case "ninguno":

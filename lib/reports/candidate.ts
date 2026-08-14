@@ -25,6 +25,10 @@
  */
 
 import { MIN_N, type DeltaDimension, type DimensionScore, type MetricState } from "../metrics/types";
+// `format` es igual de puro que este módulo: números a texto y nada más. El
+// borrador que sale de aquí acaba dentro del PDF si el operador lo conserva, así
+// que sus cifras se escriben como las del resto del informe.
+import { decimal, porcentaje } from "./format";
 
 /** §3, Bloque 5, regla 3: "si ha caído más de un 30 %". */
 export const CAIDA_VOLUMEN_MINIMA = 0.3;
@@ -138,19 +142,19 @@ export function draftFor(candidate: Candidate): string {
     case "dimension_peor":
       return (
         `Este mes lo más flojo ha sido ${candidate.label.toLowerCase()}: ` +
-        `${candidate.media} de media sobre ${candidate.nD} respuestas, ` +
-        `con un ${candidate.detractoresPct} % de valoraciones de 2 o menos.\n\n` +
+        `${decimal(candidate.media)} de media sobre ${candidate.nD} respuestas, ` +
+        `con un ${porcentaje(candidate.detractoresPct)} de valoraciones de 2 o menos.\n\n` +
         `[Escribe aquí UNA acción concreta para el mes que viene.]`
       );
     case "dimension_caida":
       return (
-        `${candidate.label} ha bajado ${Math.abs(candidate.delta)} puntos respecto al mes pasado.\n\n` +
+        `${candidate.label} ha bajado ${decimal(Math.abs(candidate.delta))} puntos respecto al mes pasado.\n\n` +
         `[¿Qué ha cambiado en el local este mes? Escribe UNA acción concreta.]`
       );
     case "volumen":
       return (
         `Este mes han respondido ${candidate.actual} personas, frente a ${candidate.anterior} ` +
-        `el mes pasado: un ${candidate.caidaPct} % menos.\n\n` +
+        `el mes pasado: un ${porcentaje(candidate.caidaPct)} menos.\n\n` +
         `[Esto suele ser un problema de los QR, no del local: comprueba que siguen ` +
         `visibles y en su sitio. Escribe aquí qué vais a revisar.]`
       );

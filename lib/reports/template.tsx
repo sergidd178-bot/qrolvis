@@ -3,6 +3,7 @@ import "server-only";
 import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 
 import { formatInZone } from "../time";
+import { conSigno, decimal, porcentaje } from "./format";
 import { mesLargo } from "./month";
 import type { MonthlyMetrics } from "../metrics";
 import type { MetricState, PuntoDimensiones } from "../metrics/types";
@@ -146,11 +147,12 @@ function Distribucion({ m }: { m: MonthlyMetrics }) {
             <View key={x} style={s.fila}>
               <Text style={s.filaValor}>{x}</Text>
               <View style={s.filaBarra}>
-                {/* Ancho en porcentaje: la barra ES el dato, no un adorno. */}
+                {/* Ancho en porcentaje: la barra ES el dato, no un adorno.
+                    Este va con punto porque es CSS, no un número que se lee. */}
                 <View style={[s.filaRelleno, { width: `${pct}%` }]} />
               </View>
               <Text style={s.filaCifra}>
-                {n} · {pct} %
+                {n} · {porcentaje(pct)}
               </Text>
             </View>
           );
@@ -188,9 +190,9 @@ function PorDimension({ m }: { m: MonthlyMetrics }) {
               return (
                 <View key={d.code} style={s.td}>
                   <Text style={s.colDim}>{d.label}</Text>
-                  <Text style={s.colNum}>{d.media}</Text>
+                  <Text style={s.colNum}>{decimal(d.media)}</Text>
                   <Text style={[s.colNum, d.detractoresPct > 0 ? { color: C.detractor } : {}]}>
-                    {d.detractoresPct} %
+                    {porcentaje(d.detractoresPct)}
                   </Text>
                   <Text style={[s.colNum, { color: C.suave }]}>{d.nD}</Text>
                   {deltas.size > 0 && (
@@ -202,7 +204,7 @@ function PorDimension({ m }: { m: MonthlyMetrics }) {
                         delta?.significativo ? { fontFamily: "Helvetica-Bold" } : { color: C.suave },
                       ]}
                     >
-                      {delta ? `${delta.delta > 0 ? "+" : ""}${delta.delta}` : "—"}
+                      {delta ? conSigno(delta.delta) : "—"}
                     </Text>
                   )}
                 </View>
@@ -262,11 +264,11 @@ function TablaDePunto({ punto }: { punto: PuntoDimensiones }) {
           {/* `media` es `number | null` y el null es el guion. No se puede
               escribir un 0 aquí ni por descuido: TypeScript no lo permite. */}
           <Text style={[s.colNum, d.media === null ? { color: C.suave } : {}]}>
-            {d.media === null ? "—" : d.media}
+            {d.media === null ? "—" : decimal(d.media)}
           </Text>
           <Text style={[s.colNum, { color: C.suave }]}>{d.nD}</Text>
           <Text style={[s.colNum, { color: C.suave }]}>
-            {d.delta === null ? "—" : `${d.delta > 0 ? "+" : ""}${d.delta}`}
+            {d.delta === null ? "—" : conSigno(d.delta)}
           </Text>
         </View>
       ))}
@@ -290,7 +292,7 @@ function PorPunto({ m }: { m: MonthlyMetrics }) {
       {m.puntos.value.map((p) => (
         <View key={p.capturePointId} style={s.td}>
           <Text style={s.colDim}>{p.label}</Text>
-          <Text style={s.colNum}>{p.media}</Text>
+          <Text style={s.colNum}>{decimal(p.media)}</Text>
           <Text style={[s.colNum, { color: C.suave }]}>{p.n}</Text>
         </View>
       ))}
@@ -341,7 +343,7 @@ function Informe({ businessName, metrics, recomendacion, operador, periodoTexto 
           <View style={s.cifraBloque}>
             {m.detractoresPct.status === "OK" ? (
               <>
-                <Text style={s.cifraNumeroRojo}>{m.detractoresPct.value} %</Text>
+                <Text style={s.cifraNumeroRojo}>{porcentaje(m.detractoresPct.value)}</Text>
                 <Text style={s.cifraEtiqueta}>te puntuaron 2 o menos</Text>
               </>
             ) : (
@@ -358,7 +360,7 @@ function Informe({ businessName, metrics, recomendacion, operador, periodoTexto 
         </View>
 
         {m.media.status === "OK" && (
-          <Text style={s.mediaPequena}>Media global: {m.media.value} sobre 5</Text>
+          <Text style={s.mediaPequena}>Media global: {decimal(m.media.value)} sobre 5</Text>
         )}
 
         <Distribucion m={m} />
