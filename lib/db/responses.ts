@@ -136,16 +136,26 @@ export async function createResponse(input: {
  * depender de un valor que el navegador pueda alterar. El botón de Google no
  * depende de esto en ningún caso (R2).
  */
-export async function readOverallRating(responseId: string): Promise<number | null> {
+export async function readOverallRating(
+  responseId: string,
+  code: string,
+): Promise<number | null> {
   const supabase = createAdminClient();
 
   const { data } = await supabase
     .from("responses")
-    .select("overall_rating")
+    .select("overall_rating, capture_points(code)")
     .eq("id", responseId)
     .maybeSingle();
 
-  return data?.overall_rating ?? null;
+  // La respuesta tiene que ser DE ESTE punto de captación. El identificador viaja
+  // en la URL, así que sin esta comprobación cualquiera que tuviera uno ajeno
+  // —una URL compartida, el historial de otro móvil— podía leer su valoración
+  // desde cualquier código. La comparación se hace aquí y no con un filtro
+  // embebido para no depender de cómo PostgREST resuelve el join.
+  if (!data || data.capture_points?.code !== code) return null;
+
+  return data.overall_rating ?? null;
 }
 
 /** Lo que las pantallas 2 y 3 necesitan para escribir, resuelto de una vez. */
@@ -163,16 +173,27 @@ type UpdatableResponse = {
  * ya lo tiene: lo rellena el trigger al insertar. Eran dos viajes de red para un
  * dato que estaba a mano, y con la base en Frankfurt cada viaje se nota.
  */
-async function loadUpdatable(responseId: string): Promise<UpdatableResponse | null> {
+async function loadUpdatable(
+  responseId: string,
+  code: string,
+): Promise<UpdatableResponse | null> {
   const supabase = createAdminClient();
 
   const { data } = await supabase
     .from("responses")
-    .select("question_set_id, submitted_at, completeness, businesses(google_review_url)")
+    .select(
+      "question_set_id, submitted_at, completeness, capture_points(code), businesses(google_review_url)",
+    )
     .eq("id", responseId)
     .maybeSingle();
 
   if (!data || data.completeness !== "partial") return null;
+
+  // Y tiene que ser de ESTE punto de captación. El identificador de la respuesta
+  // viaja en la URL: sin esto, quien tuviera uno ajeno podía escribirle el
+  // comentario a otra persona durante su ventana de 30 minutos, desde cualquier
+  // código. No sustituye a la ventana ni al estado `partial`: se suma a ellos.
+  if (data.capture_points?.code !== code) return null;
 
   const age = Date.now() - new Date(data.submitted_at).getTime();
   if (age > PARTIAL_WINDOW_MINUTES * 60_000) return null;
@@ -280,10 +301,11 @@ async function finish(
  */
 export async function addDimensionAnswers(
   responseId: string,
+  code: string,
   answers: DimensionAnswer[],
   comment: string | null,
 ): Promise<UpdateResult> {
-  const response = await loadUpdatable(responseId);
+  const response = await loadUpdatable(responseId, code);
   if (!response) return { status: "not_updatable" };
 
   if (!(await writeAnswers(responseId, response.questionSetId, answers))) {
@@ -311,10 +333,11 @@ export async function addDimensionAnswers(
  */
 export async function saveAnswersAndComplete(
   responseId: string,
+  code: string,
   answers: DimensionAnswer[],
   comment: string | null,
 ): Promise<UpdateResult> {
-  const response = await loadUpdatable(responseId);
+  const response = await loadUpdatable(responseId, code);
   if (!response) return { status: "not_updatable" };
 
   if (!(await writeAnswers(responseId, response.questionSetId, answers))) {
@@ -330,8 +353,8 @@ export async function saveAnswersAndComplete(
  *
  * La usa el enlace de saltar y el `step="complete"` de la API.
  */
-export async function completeResponse(responseId: string): Promise<UpdateResult> {
-  const response = await loadUpdatable(responseId);
+export async function completeResponse(responseId: string, code: string): Promise<UpdateResult> {
+  const response = await loadUpdatable(responseId, code);
   if (!response) return { status: "not_updatable" };
 
   return finish(responseId, response, undefined);

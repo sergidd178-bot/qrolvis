@@ -94,7 +94,7 @@ export async function submitDimensions(formData: FormData) {
   // Una sola llamada, no dos: guardar y cerrar es una única acción de la
   // persona, y separarlas duplicaba las idas y vueltas a la base.
   const comment = formData.get("comment");
-  await saveAnswersAndComplete(responseId, answers, typeof comment === "string" ? comment : null);
+  await saveAnswersAndComplete(responseId, code, answers, typeof comment === "string" ? comment : null);
 
   const params = new URLSearchParams();
   keepLanguage(params, language);
@@ -110,7 +110,7 @@ export async function skipDimensions(formData: FormData) {
   const rawLanguage = formData.get("language");
   const language: Language = isLanguage(rawLanguage) ? rawLanguage : DEFAULT_LANGUAGE;
 
-  await completeResponse(responseId);
+  await completeResponse(responseId, code);
 
   const params = new URLSearchParams();
   keepLanguage(params, language);

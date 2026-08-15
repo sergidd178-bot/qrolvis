@@ -452,7 +452,7 @@ export default async function CapturePointPage({ params, searchParams }: PagePro
     return (
       <Shell code={code} language={language} s={s} r={r} t={t}>
         <Screen3
-          rating={await readOverallRating(r)}
+          rating={await readOverallRating(r, code)}
           googleReviewUrl={config.google_review_url}
           t={t}
         />
