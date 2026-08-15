@@ -4,7 +4,7 @@ import { createAdminClient } from "../db/admin";
 import { dayInZone, startOfDayInZone, TIME_ZONE } from "../time";
 import { sendEmail } from "./resend";
 import { digestBody, digestSubject, type DigestItem } from "./template";
-import { PARTIAL_ALERT_DELAY_MINUTES, processAlert } from "./index";
+import { MAX_ALERT_AGE_HOURS, PARTIAL_ALERT_DELAY_MINUTES, processAlert } from "./index";
 
 /**
  * Trabajo programado de las alertas. Tres tareas en una sola pasada.
@@ -23,6 +23,15 @@ import { PARTIAL_ALERT_DELAY_MINUTES, processAlert } from "./index";
  */
 
 export const DIGEST_HOUR_LOCAL = 9;
+
+/**
+ * Desde cuándo mira la barrida. Es una función pura para poder fijarla con un
+ * test: la relación con `MAX_ALERT_AGE_HOURS` es la que evita que la consulta se
+ * quede corta, y una constante suelta se desincroniza sin que nadie lo vea.
+ */
+export function sweepHorizon(now: number = Date.now()): string {
+  return new Date(now - MAX_ALERT_AGE_HOURS * 3600_000).toISOString();
+}
 
 export type CronReport = {
   partialsAlerted: number;
@@ -60,10 +69,27 @@ async function dispatchPending(report: CronReport): Promise<void> {
   // Se piden las candidatas y se descartan en memoria las que ya tienen alerta:
   // PostgREST no expresa bien un "not exists" sobre la tabla embebida, y el
   // volumen es pequeño. Si algún día crece, esto pasa a una vista o a un RPC.
+  //
+  // LA VENTANA DE 48 h NO ES UNA OPTIMIZACIÓN, ES LA CORRECCIÓN DE UN FALLO QUE
+  // HABRÍA APAGADO LAS ALERTAS EN SILENCIO. Antes se pedían las 500 valoraciones
+  // bajas MÁS ANTIGUAS y se descartaban aquí las que ya tenían alerta: en cuanto
+  // el histórico superara las 500 —cuestión de tiempo, no de si—, la ventana se
+  // habría llenado de respuestas ya procesadas y las nuevas no habrían entrado
+  // nunca. Sin error, sin log y sin que nadie lo notara hasta que un cliente
+  // preguntara por qué dejó de recibir avisos.
+  //
+  // El horizonte es el MISMO límite de antigüedad que ya decide si una alerta se
+  // envía (MAX_ALERT_AGE_HOURS): más allá, `decidirAlerta` la descartaría igual,
+  // así que traerla solo servía para gastar el cupo de la consulta.
+  //
+  // El `limit(500)` se conserva como tope de seguridad, pero ahora acota el
+  // volumen RECIENTE, no la historia entera: 500 valoraciones de 2 o menos en dos
+  // días serían un incidente en sí mismo, no una acumulación normal.
   const { data, error } = await supabase
     .from("responses")
     .select("id, submitted_at, completeness, alerts(id)")
     .lte("overall_rating", 2)
+    .gte("submitted_at", sweepHorizon())
     .order("submitted_at", { ascending: true })
     .limit(500);
 
