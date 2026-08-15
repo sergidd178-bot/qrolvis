@@ -9,9 +9,12 @@ import {
   listCapturePoints,
   setCapturePointActive,
 } from "@/lib/db/capturePoints";
+import { requireOperator } from "@/lib/db/session";
 import { generateQr } from "@/lib/qr";
 
 export async function addCapturePointAction(formData: FormData) {
+  await requireOperator();
+
   const businessId = String(formData.get("businessId") ?? "");
   const label = String(formData.get("label") ?? "");
   const type = String(formData.get("type") ?? "");
@@ -54,6 +57,8 @@ export async function addCapturePointAction(formData: FormData) {
  * codifica la imagen.
  */
 export async function generateQrAction(formData: FormData) {
+  await requireOperator();
+
   const businessId = String(formData.get("businessId") ?? "");
   const capturePointId = String(formData.get("capturePointId") ?? "");
 
@@ -74,6 +79,8 @@ export async function generateQrAction(formData: FormData) {
 }
 
 export async function toggleCapturePointAction(formData: FormData) {
+  await requireOperator();
+
   const businessId = String(formData.get("businessId") ?? "");
   const id = String(formData.get("capturePointId") ?? "");
   const activate = formData.get("activate") === "1";

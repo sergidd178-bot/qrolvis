@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getBusiness } from "@/lib/db/businesses";
 import { RecomendacionPendienteError, generateReport, sendReport } from "@/lib/reports";
 import { findReport, saveReport } from "@/lib/reports/store";
+import { requireOperator } from "@/lib/db/session";
 import { admin } from "@/lib/i18n/admin";
 
 /**
@@ -16,6 +17,8 @@ import { admin } from "@/lib/i18n/admin";
  * esto es la barrera.
  */
 export async function generateReportAction(formData: FormData) {
+  await requireOperator();
+
   const businessId = String(formData.get("businessId") ?? "");
   const month = String(formData.get("month") ?? "");
   const recomendacion = String(formData.get("recommendation") ?? "");
@@ -75,6 +78,8 @@ export async function generateReportAction(formData: FormData) {
  * a un mensaje para el operador.
  */
 export async function sendReportAction(formData: FormData) {
+  await requireOperator();
+
   const businessId = String(formData.get("businessId") ?? "");
   const month = String(formData.get("month") ?? "");
   const confirmado = formData.get("confirmSend") === "on";

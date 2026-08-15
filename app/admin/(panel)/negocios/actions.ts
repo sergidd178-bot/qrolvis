@@ -12,6 +12,7 @@ import {
   type FieldErrors,
 } from "@/lib/db/businesses";
 import { listCapturePoints } from "@/lib/db/capturePoints";
+import { requireOperator } from "@/lib/db/session";
 import { generateQr } from "@/lib/qr";
 
 export type FormState = {
@@ -34,6 +35,8 @@ export async function createBusinessAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
+  await requireOperator();
+
   const input = readForm(formData);
   const sectors = await listSectors();
   const errors = validateBusiness(
@@ -73,6 +76,8 @@ export async function updateBusinessAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
+  await requireOperator();
+
   const id = String(formData.get("id") ?? "");
   const input = readForm(formData);
 

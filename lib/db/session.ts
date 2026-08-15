@@ -2,6 +2,7 @@ import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 import type { Database } from "./types";
 
@@ -62,4 +63,21 @@ export async function getOperator() {
     data: { user },
   } = await supabase.auth.getUser();
   return user;
+}
+
+/**
+ * Puerta de las Server Actions del panel. Corta la ejecución si no hay sesión.
+ *
+ * EXISTE PORQUE EL LAYOUT NO BASTA. La guardia de `app/admin/(panel)/layout.tsx`
+ * protege lo que se RENDERIZA, pero una Server Action es un POST a su propio
+ * identificador: se ejecuta ANTES de que se renderice ningún layout, así que la
+ * mutación ya ha ocurrido cuando la guardia miraría. Es la misma trampa que el
+ * route handler del PDF de QR ya esquivaba llamando a `getOperator()` a mano.
+ *
+ * Toda Server Action que escriba algo o mande un correo empieza llamando aquí.
+ */
+export async function requireOperator() {
+  const operator = await getOperator();
+  if (!operator) redirect("/admin/login");
+  return operator;
 }
