@@ -78,6 +78,31 @@ export function dayInZone(at: Date = new Date()): string {
   }).format(at);
 }
 
+/**
+ * Lunes de la semana natural de Madrid en la que cae un instante, como
+ * YYYY-MM-DD.
+ *
+ * Lunes y no domingo: es como se cuenta una semana donde están los locales. Lo
+ * usa el aviso interno al operador para tener una fila por negocio y semana
+ * (D34), así que de esta función depende que ese correo no se repita ni se
+ * pierda al cambiar de semana.
+ *
+ * Se calcula sobre el día natural DE MADRID, no sobre el UTC: una alerta de las
+ * 00:30 del lunes es del lunes aquí, aunque en UTC siga siendo domingo.
+ */
+export function weekStartInZone(at: Date = new Date()): string {
+  const dia = dayInZone(at);
+  const [y, m, d] = dia.split("-").map(Number) as [number, number, number];
+
+  // getUTCDay sobre una fecha construida en UTC: no hay desfase que aplicar
+  // porque `dia` ya viene resuelto en la zona.
+  const utc = Date.UTC(y, m - 1, d);
+  const diaSemana = new Date(utc).getUTCDay(); // 0 domingo … 6 sábado
+  const desdeLunes = (diaSemana + 6) % 7;
+
+  return new Date(utc - desdeLunes * 86_400_000).toISOString().slice(0, 10);
+}
+
 /** Fecha y hora en la zona del proyecto. */
 export function formatInZone(iso: string): string {
   return new Intl.DateTimeFormat("es-ES", {

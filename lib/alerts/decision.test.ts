@@ -5,6 +5,7 @@ import {
   MAX_ALERT_AGE_HOURS,
   decidirAlerta,
   enviadasHoy,
+  superaUmbralSemanal,
   type EstadoAlerta,
 } from "./decision";
 
@@ -160,5 +161,30 @@ describe("Límite de antigüedad", () => {
     expect(decidirAlerta({ edadMs: 500 * HORA, alertasDelDia: cinco }).accion).toBe(
       "descartar_vieja",
     );
+  });
+});
+
+describe("Aviso semanal al operador: el umbral es >=, no una igualdad exacta", () => {
+  it("por debajo de 15 no se avisa", () => {
+    expect(superaUmbralSemanal(14)).toBe(false);
+  });
+
+  it("con 15 se avisa: es el número que dice docs/05", () => {
+    expect(superaUmbralSemanal(15)).toBe(true);
+  });
+
+  it("con 16 y con 17 también, que es lo que el fallo anterior perdía", () => {
+    // La comparación era `total !== UMBRAL + 1`: solo el 16 exacto disparaba. Si
+    // dos alertas simultáneas hacían saltar el conteo de 15 a 17, el aviso no
+    // salía nunca más, porque la condición ya no volvía a cumplirse.
+    expect(superaUmbralSemanal(16)).toBe(true);
+    expect(superaUmbralSemanal(17)).toBe(true);
+  });
+
+  it("que no se repita ya no depende de esta función, sino de operator_notices", () => {
+    // Con `>=`, todas las alertas a partir de la decimoquinta darían true. Lo que
+    // impide el segundo correo es el unique(business_id, week_start) de la tabla,
+    // no una comparación afinada (D34).
+    expect([15, 16, 30, 200].every(superaUmbralSemanal)).toBe(true);
   });
 });

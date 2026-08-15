@@ -3,8 +3,13 @@ import "server-only";
 import { after } from "next/server";
 
 import { createAdminClient } from "../db/admin";
-import { MAX_ALERT_AGE_HOURS, decidirAlerta } from "./decision";
-import { dayInZone, startOfDayInZone } from "../time";
+import {
+  MAX_ALERT_AGE_HOURS,
+  WEEKLY_OPERATOR_THRESHOLD,
+  decidirAlerta,
+  superaUmbralSemanal,
+} from "./decision";
+import { dayInZone, startOfDayInZone, weekStartInZone } from "../time";
 import { sendEmail } from "./resend";
 import {
   alertBody,
@@ -24,8 +29,6 @@ export const LOW_RATING_THRESHOLD = 2;
  */
 export * from "./decision";
 
-/** docs/05, "Reglas anti-saturación". */
-export const WEEKLY_OPERATOR_THRESHOLD = 15;
 
 /**
  * Ventana tras la cual una respuesta parcial ya puede alertarse.
@@ -249,7 +252,21 @@ async function checkWeeklyOperatorNotice(businessId: string, businessName: strin
     .gte("created_at", weekAgo);
 
   const total = count ?? 0;
-  if (total !== WEEKLY_OPERATOR_THRESHOLD + 1) return;
+  if (!superaUmbralSemanal(total)) return;
+
+  // LA CERRADURA ES EL INSERT, igual que en `alerts`. Una fila por negocio y
+  // semana natural, con unique(business_id, week_start): si ya existe, este
+  // insert falla y no se manda nada. Así el umbral puede ser `>=` sin que el
+  // operador reciba un correo por cada alerta a partir de la decimoquinta, y dos
+  // ejecuciones simultáneas del cron tampoco pueden mandar dos. Ver D34.
+  const semana = weekStartInZone();
+  const { data: aviso, error: yaAvisado } = await supabase
+    .from("operator_notices")
+    .insert({ business_id: businessId, week_start: semana })
+    .select("id")
+    .single();
+
+  if (yaAvisado || !aviso) return;
 
   const result = await sendEmail({
     to: operatorEmail,
@@ -257,11 +274,12 @@ async function checkWeeklyOperatorNotice(businessId: string, businessName: strin
     text: operatorNoticeBody(businessName, total),
   });
 
-  // Este aviso no tiene fila en `alerts` —la tabla es de alertas a negocios, y
-  // no se le va a inventar una columna—, así que si falla no queda rastro en
-  // ningún sitio. Al log, que es lo único disponible sin tocar el esquema.
-  // Vale la pena saberlo: es el aviso que dice que un local va mal de verdad.
+  // Si el envío falla se BORRA la fila que acaba de reservar la semana. Dejarla
+  // puesta significaría "esta semana ya está avisada" cuando no ha salido ningún
+  // correo, y la siguiente alerta del mismo negocio ya no lo reintentaría: el
+  // aviso se habría perdido igual que antes, solo que por otra puerta.
   if (!result.ok) {
+    await supabase.from("operator_notices").delete().eq("id", aviso.id);
     console.error(
       `[alertas] no se pudo avisar al operador de que ${businessName} supera ${WEEKLY_OPERATOR_THRESHOLD} alertas semanales:`,
       result.error,

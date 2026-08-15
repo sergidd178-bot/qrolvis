@@ -48,6 +48,25 @@ export function enviadasHoy(alertasDelDia: readonly { status: string }[]): numbe
   return alertasDelDia.filter((a) => a.status === "sent").length;
 }
 
+/**
+ * ¿Toca avisar al operador de que este negocio se ha pasado de la raya?
+ *
+ * `>=` y no `===`. La comparación era `total !== UMBRAL + 1`, o sea, exigía que
+ * el recuento valiese EXACTAMENTE 16: si dos alertas se creaban casi a la vez y
+ * el conteo saltaba de 15 a 17, el aviso no salía, y como la condición solo se
+ * cumple en ese punto exacto, tampoco salía después. Se perdía para siempre justo
+ * el correo que dice que un local va mal de verdad.
+ *
+ * Que no se repita cada alerta posterior ya no depende de esta comparación, sino
+ * de `operator_notices` y su índice único por negocio y semana (D34).
+ */
+export function superaUmbralSemanal(alertasEnSieteDias: number): boolean {
+  return alertasEnSieteDias >= WEEKLY_OPERATOR_THRESHOLD;
+}
+
+/** docs/05, "Reglas anti-saturación": 15 alertas en 7 días. */
+export const WEEKLY_OPERATOR_THRESHOLD = 15;
+
 export function decidirAlerta(input: {
   /** Edad de la RESPUESTA, no de la alerta. */
   edadMs: number;

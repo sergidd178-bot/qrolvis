@@ -261,6 +261,35 @@ export type Database = {
           },
         ]
       }
+      operator_notices: {
+        Row: {
+          business_id: string
+          id: string
+          sent_at: string
+          week_start: string
+        }
+        Insert: {
+          business_id: string
+          id?: string
+          sent_at?: string
+          week_start: string
+        }
+        Update: {
+          business_id?: string
+          id?: string
+          sent_at?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operator_notices_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       questions: {
         Row: {
           code: string
