@@ -232,6 +232,12 @@ problemas en el formulario.
 
 ## 3. Estructura del informe mensual
 
+**El informe mensual es un servicio opcional.** El cron solo lo prepara para los
+negocios con `monthly_reports_enabled`. A diferencia de las alertas, aquí no se
+registra nada: un informe que nadie va a leer no se calcula, porque calcularlo
+cuesta dos meses de métricas por negocio. El operador puede generarlo a mano desde
+el panel para verlo, pero el envío al cliente queda bloqueado (D37).
+
 Una sola página si es posible, dos como máximo. El dueño de un bar no lee ocho páginas.
 
 **Aclaración (D29).** Esta longitud es un objetivo, no un límite duro, y cede ante la
@@ -332,6 +338,12 @@ overall_rating <= 2
 ```
 
 Umbral global, no configurable por cliente en la versión 1.
+
+**Y solo si el negocio tiene contratadas las notificaciones instantáneas**
+(`businesses.instant_alerts_enabled`). Si no las tiene, la alerta **se detecta y
+se registra igual**, con `status = 'skipped'`: el histórico queda completo por si
+el cliente contrata el servicio más adelante, y el operador la ve en el panel. Lo
+único que no ocurre es el envío, ni el individual ni el del resumen diario (D37).
 
 ### Momento del envío
 

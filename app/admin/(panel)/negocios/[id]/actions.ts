@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { setOptionalService, type OptionalService } from "@/lib/db/businesses";
 import {
   createCapturePoint,
   getCapturePoint,
@@ -94,4 +95,35 @@ export async function toggleCapturePointAction(formData: FormData) {
   }
 
   redirect(`/admin/negocios/${businessId}?punto=${activate ? "reactivado" : "desactivado"}`);
+}
+
+/**
+ * Enciende o apaga uno de los dos servicios opcionales (D37).
+ *
+ * El nombre del servicio llega por el formulario, así que se comprueba contra la
+ * lista cerrada antes de tocar nada: sin eso, el campo sería el nombre de una
+ * columna elegido por quien mande la petición.
+ */
+const SERVICIOS: OptionalService[] = ["instant_alerts_enabled", "monthly_reports_enabled"];
+
+export async function toggleOptionalServiceAction(formData: FormData) {
+  await requireOperator();
+
+  const businessId = String(formData.get("businessId") ?? "");
+  const service = String(formData.get("service") ?? "") as OptionalService;
+  const enable = formData.get("enable") === "1";
+
+  if (!SERVICIOS.includes(service)) {
+    redirect(`/admin/negocios/${businessId}?errorServicio=1`);
+  }
+
+  const result = await setOptionalService(businessId, service, enable);
+
+  revalidatePath(`/admin/negocios/${businessId}`);
+
+  if (!result.ok) {
+    redirect(`/admin/negocios/${businessId}?errorPunto=${encodeURIComponent(result.message)}`);
+  }
+
+  redirect(`/admin/negocios/${businessId}?servicio=${enable ? "activado" : "desactivado"}`);
 }

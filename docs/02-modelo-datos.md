@@ -96,6 +96,10 @@ create table businesses (
   default_language  text not null default 'es' check (default_language in ('es','ca')),
   status            text not null default 'active'
                     check (status in ('active', 'paused', 'cancelled')),
+  -- Servicios opcionales, contratados aparte. Nacen APAGADOS: se encienden
+  -- cuando el cliente los contrata, nunca por omisión (D37).
+  instant_alerts_enabled   boolean not null default false,
+  monthly_reports_enabled  boolean not null default false,
   onboarded_at      date,
   created_at        timestamptz not null default now()
 );
@@ -257,7 +261,7 @@ create table alerts (
   business_id  uuid not null references businesses(id) on delete restrict,
   channel      text not null default 'email',
   status       text not null default 'pending'
-               check (status in ('pending', 'sent', 'failed', 'not_applicable')),
+               check (status in ('pending', 'sent', 'failed', 'not_applicable', 'skipped')),
   error_detail text,
   message_id   text,                          -- id del correo en Resend
   created_at   timestamptz not null default now(),
@@ -275,7 +279,8 @@ create table alerts (
 -- complained— por API o por webhook. Esa consulta todavía no está implementada.
 --
 -- Es NULL cuando la fila es anterior a la migración que añadió la columna, cuando
--- la alerta no ha producido correo (`pending`, `failed`, `not_applicable`), o si
+-- la alerta no ha producido correo (`pending`, `failed`, `not_applicable`,
+-- `skipped`), o si
 -- Resend aceptara un envío sin devolver identificador.
 --
 -- NO es único, a propósito: el resumen diario es UN correo que cubre N alertas, y
@@ -289,6 +294,11 @@ create table alerts (
 --   failed          se intentó y falló. El motivo va en error_detail.
 --   not_applicable  se decidió NO enviarla. El motivo va en error_detail.
 --                   Hoy solo lo usa el límite de 48 h de antigüedad (D28).
+--   skipped         el negocio NO tiene contratadas las notificaciones
+--                   instantáneas (D37). No es un fallo —no se intentó nada— ni
+--                   una decisión sobre esta alerta: es una condición del
+--                   contrato del negocio. Se registra igual para conservar el
+--                   histórico si el cliente contrata el servicio más adelante.
 --
 -- `unique (response_id)` no es solo una salvaguarda contra duplicados: es la
 -- cerradura del envío. El insert de la fila es lo que reclama la alerta, así que

@@ -74,8 +74,9 @@ total de operación manual debe ser inferior a 5 horas. Cualquier funcionalidad 
 no cumpla esto se rediseña o se descarta.
 
 Cadencia de entrega:
-- **Alerta por valoración baja: inmediata.** Es lo que mantiene el producto presente.
-- **Informe: mensual.** Semanal produce ruido con volúmenes bajos y hace parecer
+- **Alerta por valoración baja: inmediata**, para quien la tenga contratada. Es lo
+  que mantiene el producto presente.
+- **Informe: mensual**, para quien lo tenga contratado. Semanal produce ruido con volúmenes bajos y hace parecer
   vacío el servicio. Un plan semanal puede existir más adelante para locales de
   alto volumen, como plan superior.
 

@@ -42,6 +42,8 @@ export const PARTIAL_ALERT_DELAY_MINUTES = 30;
 
 export type AlertOutcome =
   | { status: "not_applicable"; reason?: string }
+  /** El negocio no tiene contratadas las notificaciones instantáneas (D37). */
+  | { status: "skipped" }
   | { status: "already_handled" }
   | { status: "sent" }
   /** `enviadasHoy` son los correos que YA salieron hoy, los que agotaron el cupo. */
@@ -107,7 +109,7 @@ export async function processAlert(responseId: string): Promise<AlertOutcome> {
   const { data: response } = await supabase
     .from("responses")
     .select(
-      "id, business_id, overall_rating, comment, submitted_at, completeness, businesses(name, alert_email), capture_points(label), answers(rating_value, questions(text_es, position))",
+      "id, business_id, overall_rating, comment, submitted_at, completeness, businesses(name, alert_email, instant_alerts_enabled), capture_points(label), answers(rating_value, questions(text_es, position))",
     )
     .eq("id", responseId)
     .maybeSingle();
@@ -145,6 +147,30 @@ export async function processAlert(responseId: string): Promise<AlertOutcome> {
     .single();
 
   if (insertError || !alert) return { status: "already_handled" };
+
+  // SIN SERVICIO CONTRATADO NO SE ENVÍA, pero la fila se queda (D37).
+  //
+  // Se comprueba ANTES que la antigüedad y que el tope diario, porque es una
+  // condición de otro orden: los otros dos deciden sobre ESTA alerta, y esto
+  // decide si el negocio tiene el servicio siquiera. Mezclarlos haría que una
+  // valoración baja de un cliente sin contrato apareciera en el panel como
+  // "no aplicable por antigua", que es una explicación falsa.
+  //
+  // La fila se conserva porque el histórico vale: si el cliente contrata las
+  // alertas más adelante, se le puede enseñar exactamente lo que se perdió. Y
+  // porque `unique (response_id)` hace que esa fila sea también la marca que
+  // impide reevaluar la respuesta en cada pasada del cron.
+  if (!business.instant_alerts_enabled) {
+    await supabase
+      .from("alerts")
+      .update({
+        status: "skipped",
+        error_detail:
+          "No enviada: el negocio no tiene contratadas las notificaciones instantáneas.",
+      })
+      .eq("id", alert.id);
+    return { status: "skipped" };
+  }
 
   // Se traen los ESTADOS de las alertas que ese negocio ya tiene hoy, sin la
   // recién creada. El corte de día es el de Madrid, no el de UTC (lib/time.ts).

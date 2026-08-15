@@ -65,10 +65,16 @@ export async function prepareMonthlyReports(month?: string): Promise<MonthlyRepo
     avisoOperador: "sin_pendientes",
   };
 
+  // SOLO LOS QUE TIENEN EL INFORME CONTRATADO (D37). Y aquí, a diferencia de las
+  // alertas, no se registra nada para los demás: una alerta ya está calculada
+  // cuando se decide si enviarla, pero un informe cuesta dos meses de métricas
+  // por negocio. Gastar eso para dejar una fila que nadie va a abrir no tiene
+  // sentido, así que el negocio sin servicio no aparece siquiera en `reports`.
   const { data: negocios, error } = await supabase
     .from("businesses")
     .select("id, name")
     .eq("status", "active")
+    .eq("monthly_reports_enabled", true)
     .order("name");
 
   if (error) {

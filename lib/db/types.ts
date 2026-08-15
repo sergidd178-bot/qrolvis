@@ -141,6 +141,8 @@ export type Database = {
           default_language: string
           google_review_url: string | null
           id: string
+          instant_alerts_enabled: boolean
+          monthly_reports_enabled: boolean
           name: string
           onboarded_at: string | null
           question_set_id: string
@@ -153,6 +155,8 @@ export type Database = {
           default_language?: string
           google_review_url?: string | null
           id?: string
+          instant_alerts_enabled?: boolean
+          monthly_reports_enabled?: boolean
           name: string
           onboarded_at?: string | null
           question_set_id: string
@@ -165,6 +169,8 @@ export type Database = {
           default_language?: string
           google_review_url?: string | null
           id?: string
+          instant_alerts_enabled?: boolean
+          monthly_reports_enabled?: boolean
           name?: string
           onboarded_at?: string | null
           question_set_id?: string

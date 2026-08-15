@@ -77,6 +77,8 @@ export type BusinessRow = {
   google_review_url: string | null;
   alert_email: string;
   default_language: string;
+  instant_alerts_enabled: boolean;
+  monthly_reports_enabled: boolean;
   capturePoints: number;
   activeCapturePoints: number;
 };
@@ -86,7 +88,9 @@ export async function listBusinesses(): Promise<BusinessRow[]> {
 
   const { data: businesses } = await supabase
     .from("businesses")
-    .select("id, name, sector_id, status, google_review_url, alert_email, default_language")
+    .select(
+      "id, name, sector_id, status, google_review_url, alert_email, default_language, instant_alerts_enabled, monthly_reports_enabled",
+    )
     .order("created_at", { ascending: false });
 
   if (!businesses) return [];
@@ -113,7 +117,9 @@ export async function getBusiness(id: string) {
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("businesses")
-    .select("id, name, sector_id, status, google_review_url, alert_email, default_language, question_set_id")
+    .select(
+      "id, name, sector_id, status, google_review_url, alert_email, default_language, question_set_id, instant_alerts_enabled, monthly_reports_enabled",
+    )
     .eq("id", id)
     .maybeSingle();
   return data;
@@ -169,6 +175,41 @@ export async function updateBusiness(
       google_review_url: input.googleReviewUrl.trim() || null,
     })
     .eq("id", id);
+
+  return error ? { ok: false, message: error.message } : { ok: true };
+}
+
+/** Los dos servicios que se contratan aparte (D37). */
+export type OptionalService = "instant_alerts_enabled" | "monthly_reports_enabled";
+
+/**
+ * Enciende o apaga un servicio opcional.
+ *
+ * APARTE DE `updateBusiness()` a propósito. Esa función es el formulario de la
+ * ficha: nombre, correo, idioma y enlace de Google, que se editan juntos y se
+ * guardan con un botón. Esto es un interruptor que se pulsa solo, y mezclarlo
+ * obligaría a mandar el formulario entero para marcar una casilla, con el riesgo
+ * de sobrescribir con valores viejos lo que hubiera cambiado mientras tanto.
+ *
+ * El nombre de la columna no llega desde el navegador como texto libre: el tipo
+ * `OptionalService` lo acota a las dos que existen.
+ */
+export async function setOptionalService(
+  id: string,
+  service: OptionalService,
+  enabled: boolean,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const supabase = createAdminClient();
+
+  // El objeto se construye a mano y no con una clave calculada: con
+  // `{ [service]: enabled }` TypeScript pierde el tipo de la columna y deja de
+  // comprobar que exista. Así, si mañana se renombra una, esto no compila.
+  const cambio =
+    service === "instant_alerts_enabled"
+      ? { instant_alerts_enabled: enabled }
+      : { monthly_reports_enabled: enabled };
+
+  const { error } = await supabase.from("businesses").update(cambio).eq("id", id);
 
   return error ? { ok: false, message: error.message } : { ok: true };
 }

@@ -26,6 +26,22 @@ export const admin = {
 
   // Negocios
   businesses: "Negocios",
+
+  // Servicios opcionales de la ficha de negocio (D37)
+  optionalServicesTitle: "Servicios contratados",
+  optionalServicesIntro:
+    "Se activan según lo que el cliente haya contratado. Un negocio nuevo empieza sin ninguno.",
+  instantAlerts: "Notificaciones instantáneas de valoración baja",
+  instantAlertsOff:
+    "Las valoraciones bajas se siguen registrando y las ves en el panel, pero no se envía ningún aviso al negocio.",
+  monthlyReports: "Informe mensual de rendimiento",
+  monthlyReportsOff:
+    "El cron del día 1 no prepara el informe de este negocio. Puedes generarlo a mano para verlo, pero no enviarlo.",
+  serviceContracted: "Contratado",
+  serviceNotContracted: "No contratado",
+  activate: "Activar",
+  reportNotContracted:
+    "Este negocio no tiene contratado el informe mensual, así que no se le puede enviar. Actívalo en su ficha si lo ha contratado.",
   newBusiness: "Nuevo negocio",
   createBusiness: "Crear negocio",
   editBusiness: "Editar negocio",

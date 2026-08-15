@@ -37,6 +37,8 @@ export type CronReport = {
   partialsAlerted: number;
   sweepAlerted: number;
   tooOld: number;
+  /** Detectadas y registradas, sin enviar: el negocio no tiene el servicio (D37). */
+  skippedNoService: number;
   digestsSent: number;
   digestsFailed: number;
   errors: string[];
@@ -110,6 +112,7 @@ async function dispatchPending(report: CronReport): Promise<void> {
     const outcome = await processAlert(r.id);
 
     if (outcome.status === "too_old") report.tooOld++;
+    else if (outcome.status === "skipped") report.skippedNoService++;
     else if (outcome.status === "sent" || outcome.status === "held_for_digest") {
       if (r.completeness === "complete") report.sweepAlerted++;
       else report.partialsAlerted++;
@@ -143,7 +146,7 @@ export async function sendDigests(report: CronReport): Promise<void> {
   const { data, error } = await supabase
     .from("alerts")
     .select(
-      "id, business_id, created_at, businesses(name, alert_email), responses(overall_rating, comment, submitted_at, capture_points(label), answers(rating_value, questions(text_es, position)))",
+      "id, business_id, created_at, businesses(name, alert_email, instant_alerts_enabled), responses(overall_rating, comment, submitted_at, capture_points(label), answers(rating_value, questions(text_es, position)))",
     )
     .eq("status", "pending")
     .lt("created_at", todayStart)
@@ -169,6 +172,28 @@ export async function sendDigests(report: CronReport): Promise<void> {
 
   for (const { dia, filas } of grupos.values()) {
     const negocio = filas[0]?.businesses;
+    const ids = filas.map((f) => f.id);
+
+    // EL RESUMEN ES OTRO CORREO AL CLIENTE, así que respeta la misma bandera que
+    // el aviso suelto (D37). Sin esto, apagar las notificaciones instantáneas
+    // dejaría de mandar los avisos individuales y seguiría mandando el resumen
+    // con todos ellos dentro al día siguiente, que es peor que no apagarlas.
+    //
+    // Y quedan en `skipped`, no en `pending`: pending significa "falta
+    // procesarlas" y volverían a mirarse en cada pasada para siempre. Esto ya
+    // está decidido.
+    if (negocio && !negocio.instant_alerts_enabled) {
+      await supabase
+        .from("alerts")
+        .update({
+          status: "skipped",
+          error_detail:
+            "No enviada en el resumen: el negocio no tiene contratadas las notificaciones instantáneas.",
+        })
+        .in("id", ids);
+      report.skippedNoService += filas.length;
+      continue;
+    }
 
     // Un negocio sin dirección deja sus alertas en `pending` para siempre, y
     // antes se saltaba con un `continue` mudo: nadie se enteraba de que ese
@@ -202,8 +227,6 @@ export async function sendDigests(report: CronReport): Promise<void> {
       subject: digestSubject(negocio.name, items.length),
       text: digestBody(negocio.name, formatDay(dia), items),
     });
-
-    const ids = filas.map((f) => f.id);
 
     if (result.ok) {
       // TODAS las filas del grupo comparten el mismo identificador, porque las
@@ -240,6 +263,7 @@ export async function runAlertTasks(): Promise<CronReport> {
     partialsAlerted: 0,
     sweepAlerted: 0,
     tooOld: 0,
+    skippedNoService: 0,
     digestsSent: 0,
     digestsFailed: 0,
     errors: [],

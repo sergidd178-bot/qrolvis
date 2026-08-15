@@ -8,6 +8,7 @@ import { formUrlFor, isProvisionalDomain, qrStatusFor, signedQrUrl, siteUrl } fr
 import { updateBusinessAction } from "../actions";
 import { BusinessForm } from "../BusinessForm";
 import { CapturePoints } from "./CapturePoints";
+import { OptionalServices } from "./OptionalServices";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +102,12 @@ export default async function EditBusinessPage({
       )}
 
       <BusinessForm action={updateBusinessAction} sectors={sectors} business={business} />
+
+      <OptionalServices
+        businessId={id}
+        instantAlerts={business.instant_alerts_enabled}
+        monthlyReports={business.monthly_reports_enabled}
+      />
 
       <CapturePoints
         businessId={id}

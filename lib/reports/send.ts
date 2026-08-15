@@ -93,7 +93,7 @@ export async function sendReport(
 
   const { data: informe } = await supabase
     .from("reports")
-    .select("id, status, pdf_url, metrics, businesses(name, alert_email)")
+    .select("id, status, pdf_url, metrics, businesses(name, alert_email, monthly_reports_enabled)")
     .eq("business_id", businessId)
     .eq("period_start", `${month}-01`)
     .maybeSingle();
@@ -108,6 +108,20 @@ export async function sendReport(
   const negocio = informe.businesses;
   if (!negocio?.alert_email) {
     return { ok: false, message: "El negocio no tiene dirección de correo configurada." };
+  }
+
+  // GENERAR SÍ, ENVIAR NO (D37). El operador puede componer el informe de un
+  // negocio sin el servicio contratado para verlo por dentro —es su herramienta—
+  // pero el correo es el entregable que se factura, y sale solo para quien lo ha
+  // contratado. La comprobación vive aquí, en la única función de envío, y no en
+  // el botón del panel: así la cubre también la tarea programada del día que
+  // exista.
+  if (!negocio.monthly_reports_enabled) {
+    return {
+      ok: false,
+      message:
+        "Este negocio no tiene contratado el informe mensual, así que no se le puede enviar. Actívalo en su ficha si lo ha contratado.",
+    };
   }
 
   const { data: archivo, error: descargaError } = await supabase.storage
