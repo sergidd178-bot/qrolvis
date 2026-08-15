@@ -25,8 +25,7 @@ el bundle del formulario, es un error que hay que corregir.
 /admin/negocios/[id]     Ficha, puntos de captación, descarga de QR
 /admin/respuestas        Consulta y filtrado
 /admin/informes          Generación y descarga
-/api/responses           POST público. Recibe respuestas
-/api/reports/generate    POST interno. Genera informe mensual
+/api/cron                Disparo programado de alertas
 /api/cron/monthly        Disparo programado de informes
 ```
 
@@ -168,10 +167,25 @@ Motivo: la mayoría de abandonos ocurren después del primer toque. Guardar solo
 final descarta precisamente las respuestas más fáciles de conseguir.
 
 ```
-Pantalla 1  →  POST /api/responses          → crea response, devuelve response_id
-Pantalla 2  →  PATCH /api/responses/[id]    → añade dimensiones y comentario
-Pantalla 3  →  PATCH /api/responses/[id]    → marca completed
+Pantalla 1  →  Server Action startResponse     → crea response, redirige con ?r=
+Pantalla 2  →  Server Action submitDimensions  → guarda dimensiones y comentario
+               (o skipDimensions)                y marca completed
+Pantalla 3  →  solo lectura                     → agradecimiento y enlace a Google
 ```
+
+**No hay endpoints HTTP en este flujo, y es deliberado.** Las tres pantallas son
+formularios nativos cuyo `action` es una Server Action, así que el formulario
+avanza con navegaciones normales del navegador y funciona con JavaScript
+desactivado (`docs/03`, "Casos límite").
+
+Existieron `POST /api/responses` y `PATCH /api/responses/[id]`, que es lo que
+describía este documento. **Se eliminaron el 2026-08-15**: ningún código los
+llamaba y eran una puerta de escritura pública sin autenticar. Peor aún, recibían
+el `deviceToken` en el cuerpo de la petición, de modo que la ventana antiduplicados
+de 6 horas se saltaba mandando un identificador nuevo cada vez; con el código de un
+QR, que está impreso a la vista en una mesa, cualquiera podía inyectar el volumen
+de respuestas falsas que quisiera y disparar alertas al dueño del local. Por la
+Server Action ese token va en una cookie `httpOnly` que el cliente no elige.
 
 Una respuesta que solo tiene la pantalla 1 es **válida y se cuenta**. Se marca con
 `completeness = 'partial'`. Las métricas por dimensión solo usan las completas;
@@ -195,8 +209,8 @@ El formulario público no tiene sesión ni identidad de ningún tipo.
   activos y las `questions`. Nada más.
 - El rol anónimo no puede leer ninguna respuesta, ni siquiera la propia.
 - Toda escritura en `responses` y `answers` se hace desde el servidor con la
-  clave secreta, a través de `createAdminClient()` en los endpoints de
-  `/api/responses`.
+  clave secreta, a través de `createAdminClient()` en las Server Actions de
+  `app/f/[code]/actions.ts`.
 - Las claves de servicio nunca llegan al cliente.
 - **Ninguna función del esquema `public` es ejecutable por `anon` salvo
   `capture_point_config`**, que es la que el formulario necesita.

@@ -365,7 +365,7 @@ alter table reports       enable row level security;
 
 -- El público NO escribe: responses y answers quedan con RLS activo y sin
 -- ninguna policy para anon, ni de insert ni de select. Toda escritura pasa por
--- /api/responses con la clave secreta (D20 en docs/08).
+-- las Server Actions del formulario con la clave secreta (D20 en docs/08).
 
 -- El público puede leer el punto de captación activo por su código
 create policy public_read_capture_point on capture_points
