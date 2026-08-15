@@ -194,7 +194,7 @@ export async function listComments(
   // distintas —el bug que esto tuvo—. La condición está entera en la consulta.
   //
   // Que no haya comentarios en blanco lo garantiza la escritura:
-  // addDimensionAnswers guarda `null` cuando el texto llega vacío o solo con
+  // saveAnswersAndComplete guarda `null` cuando el texto llega vacío o solo con
   // espacios. Si alguna vez apareciera uno, se vería como una tarjeta vacía:
   // visible y diagnosticable, en vez de un descuadre silencioso entre números.
   const rows: CommentRow[] = (data ?? [])

@@ -293,37 +293,6 @@ async function finish(
 }
 
 /**
- * Guarda dimensiones y comentario SIN cerrar la respuesta.
- *
- * La usa `PATCH /api/responses/[id]` con `step="answers"`, que separa guardar de
- * cerrar. El formulario no pasa por aquí: usa `saveAnswersAndComplete()`, que
- * hace las dos cosas en una pasada.
- */
-export async function addDimensionAnswers(
-  responseId: string,
-  code: string,
-  answers: DimensionAnswer[],
-  comment: string | null,
-): Promise<UpdateResult> {
-  const response = await loadUpdatable(responseId, code);
-  if (!response) return { status: "not_updatable" };
-
-  if (!(await writeAnswers(responseId, response.questionSetId, answers))) {
-    return { status: "not_updatable" };
-  }
-
-  const supabase = createAdminClient();
-  const trimmed = comment?.trim();
-
-  const { error } = await supabase
-    .from("responses")
-    .update({ comment: trimmed ? trimmed : null })
-    .eq("id", responseId);
-
-  return error ? { status: "not_updatable" } : { status: "ok" };
-}
-
-/**
  * Envío de la pantalla 2: guarda dimensiones y comentario Y cierra la respuesta.
  *
  * Existe porque es UNA sola acción de la persona, y hacerla con dos llamadas
