@@ -198,6 +198,26 @@ El formulario público no tiene sesión ni identidad de ningún tipo.
   clave secreta, a través de `createAdminClient()` en los endpoints de
   `/api/responses`.
 - Las claves de servicio nunca llegan al cliente.
+- **Ninguna función del esquema `public` es ejecutable por `anon` salvo
+  `capture_point_config`**, que es la que el formulario necesita.
+
+**Cuidado con `revoke ... from public`: no cierra nada por sí solo.** Es el fallo
+que encontró la auditoría del 2026-08-14. `PUBLIC` es el pseudo-rol que agrupa a
+todos, pero el proyecto trae además una concesión **por rol** sobre `anon` y
+`authenticated`, puesta por las *default privileges* del esquema. Revocar de
+`PUBLIC` deja la concesión nominal intacta, así que `create_business`,
+`create_capture_point` y `generate_capture_point_code` seguían siendo invocables
+con la clave publishable pese a llevar su `revoke` escrito. Se comprobó creando
+un negocio real desde el navegador.
+
+La migración `20260815090000` revoca de `anon` y `authenticated` explícitamente y,
+sobre todo, cambia las *default privileges* para que una función nueva **no nazca
+abierta**. Desde entonces, toda función alcanzable desde el formulario necesita su
+`grant execute ... to anon` escrito a mano en la misma migración que la crea.
+
+Esto se comprueba ejecutando, contra el Supabase **local**,
+`node scripts/sonda-permisos.mjs`. La sonda se niega a apuntar a producción: es de
+escritura, y una vez creó filas de verdad.
 
 **Por qué el rol anónimo ya no inserta.** Hasta la decisión D20 existían dos
 policies de insert, `public_insert_responses` y `public_insert_answers`, ambas
