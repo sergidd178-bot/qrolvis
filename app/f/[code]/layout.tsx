@@ -24,7 +24,7 @@ export const metadata: Metadata = {
  * layout únicamente recibe los parámetros que hay en su propio camino.
  *
  * LO QUE ESTE LAYOUT NO PUEDE VER es `?lang=`, el selector manual del pie: los
- * layouts no reciben la cadena de consulta, y el middleware no puede alcanzar
+ * layouts no reciben la cadena de consulta, y el proxy no puede alcanzar
  * `/f` sin romper el presupuesto de D21. Por eso la página marca además el
  * idioma en su propio contenedor: cuando alguien cambia de lengua a mano, el
  * `<html>` se queda con el idioma de partida y el contenido declara el suyo,

@@ -42,7 +42,7 @@ export async function createSessionClient() {
           }
         } catch {
           // Escribir cookies desde un Server Component lanza. El refresco del
-          // token lo hace el middleware, que sí puede, así que aquí se ignora.
+          // token lo hace el proxy (proxy.ts), que sí puede, así que aquí se ignora.
         }
       },
     },
