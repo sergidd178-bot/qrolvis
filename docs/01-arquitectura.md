@@ -305,10 +305,19 @@ Sin captcha: destruye la conversión y el riesgo real es bajo.
 
 En su lugar:
 
-1. **Token de dispositivo**: UUID aleatorio guardado en `localStorage` en la
-   primera visita. Se envía con la respuesta. Bloquea repeticiones desde el mismo
-   navegador dentro de una ventana de 6 horas para el mismo punto de captación.
-   No es un dato personal: es aleatorio y no identifica a nadie.
+1. **Token de dispositivo**: UUID aleatorio guardado en una **cookie `httpOnly`**
+   en la primera visita, con `sameSite=lax`, ámbito `/f` y caducidad de 6 horas.
+   Bloquea repeticiones desde el mismo navegador dentro de esa ventana para el
+   mismo punto de captación. No es un dato personal: es aleatorio, no deriva de
+   nada de la persona y no identifica a nadie.
+
+   **No es `localStorage`, y este documento lo dijo por error hasta el
+   2026-08-15.** El formulario funciona sin JavaScript de cliente (D21, `docs/03`
+   "Casos límite"), así que no hay `localStorage` que usar en esa ruta. Manda lo
+   que dicen `docs/06` y el código: cookie `httpOnly`. Que sea `httpOnly` no es
+   un detalle: al no poder leerla ni escribirla el navegador, el token no lo elige
+   el cliente, y por eso la ventana antiduplicados no se salta mandando uno nuevo
+   —que es exactamente lo que sí permitía el `POST /api/responses` retirado.
 2. **Límite por IP en el borde**, aplicado en memoria y **nunca persistido**.
 3. **Alerta operativa** si un punto de captación recibe un volumen anómalo.
 
