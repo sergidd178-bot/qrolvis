@@ -169,7 +169,18 @@ export async function sendDigests(report: CronReport): Promise<void> {
 
   for (const { dia, filas } of grupos.values()) {
     const negocio = filas[0]?.businesses;
-    if (!negocio?.alert_email) continue;
+
+    // Un negocio sin dirección deja sus alertas en `pending` para siempre, y
+    // antes se saltaba con un `continue` mudo: nadie se enteraba de que ese
+    // cliente no estaba recibiendo nada. Se registra en el informe del cron, que
+    // es lo que sale por la respuesta del endpoint y queda en el log de quien lo
+    // dispara.
+    if (!negocio?.alert_email) {
+      report.errors.push(
+        `resumen de ${negocio?.name ?? "negocio desconocido"} (${dia}): sin dirección de alertas, ${filas.length} alertas siguen sin enviar`,
+      );
+      continue;
+    }
 
     const items: DigestItem[] = filas
       .filter((f) => f.responses)

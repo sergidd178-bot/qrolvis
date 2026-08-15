@@ -76,7 +76,7 @@ export async function prepareMonthlyReports(month?: string): Promise<MonthlyRepo
     return report;
   }
 
-  const { start } = { start: `${mes}-01` };
+  const start = `${mes}-01`;
 
   for (const negocio of negocios ?? []) {
     try {
