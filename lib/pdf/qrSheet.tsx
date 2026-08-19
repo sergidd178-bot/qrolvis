@@ -62,7 +62,9 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica",
   },
   business: { fontSize: 13, color: "#6b7280", marginBottom: 28 },
-  qrBox: { width: 260, height: 260, marginBottom: 28 },
+  // 142 pt = 50 mm exactos: el tamaño de la etiqueta de vinilo (D38). No es
+  // decorativo, es la medida física a la que se imprime y se corta.
+  qrBox: { width: 142, height: 142, marginBottom: 28 },
   label: { fontSize: 30, fontFamily: "Helvetica-Bold", color: "#1f2937", marginBottom: 8 },
   code: { fontSize: 17, fontFamily: "Courier", color: "#1f2937", letterSpacing: 2 },
   url: { position: "absolute", bottom: 36, fontSize: 9, color: "#6b7280" },

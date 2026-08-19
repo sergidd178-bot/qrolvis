@@ -3,6 +3,15 @@ import "server-only";
 import QRCode from "qrcode";
 
 import { createAdminClient } from "../db/admin";
+import {
+  FRAME_BLEED,
+  QR_STYLE,
+  circlePath,
+  fixed,
+  reversedRoundedSquarePath,
+  roundedSquarePath,
+  roundedSquarePerimeterPoint,
+} from "./style";
 
 const BUCKET = "qr";
 
@@ -11,15 +20,16 @@ const BUCKET = "qr";
  * tamaño de impresión sin pixelarse y pesa unos pocos KB. Un PNG a resolución
  * de imprenta sería mucho más pesado y quedaría atado a un tamaño concreto.
  *
- * Corrección de errores M: el estándar para impresión. Aguanta suciedad y roces
- * en una mesa de bar sin densificar tanto el código como para dificultar el
- * escaneo a distancia.
+ * Corrección de errores H y no M (D38): el estilo decorativo baja el contraste
+ * efectivo —dorado sobre negro, tinta al 82 % del módulo— y el destino es
+ * vinilo dentro de un local, expuesto a roce y suciedad. El precio es pasar de
+ * 29×29 a 33×33 módulos, que a 5×5 cm siguen dando 1,042 mm por módulo.
+ *
+ * Sin `margin` ni `width`: el margen lo pone `QR_STYLE.quietZone` porque aquí
+ * la zona de silencio no es blanca sino del color del fondo, y el tamaño lo
+ * decide quien lo pinta, no el archivo.
  */
-const QR_OPTIONS = {
-  errorCorrectionLevel: "M",
-  margin: 2,
-  width: 512,
-} as const;
+const QR_OPTIONS = { errorCorrectionLevel: "H" } as const;
 
 /**
  * URL que codifica el QR.
@@ -70,13 +80,87 @@ export function qrObjectPath(capturePointId: string): string {
 }
 
 /**
- * Render del SVG. Lo usan TANTO la generación como la verificación, y ese es el
- * motivo de que exista: si cada una construyera su SVG por su cuenta, podrían
- * divergir y la verificación empezaría a dar falsos positivos sin que nadie lo
- * notara hasta tener papel impreso de más.
+ * Render del SVG decorativo (D38). Lo usan TANTO la generación como la
+ * verificación, y ese es el motivo de que exista: si cada una construyera su
+ * SVG por su cuenta, podrían divergir y la verificación empezaría a dar falsos
+ * positivos sin que nadie lo notara hasta tener papel impreso de más.
+ *
+ * Se usa `QRCode.create()`, la API de bajo nivel, y no `toString()`: lo único
+ * que se quiere de la librería es la matriz de módulos. El dibujo es nuestro.
+ *
+ * Salida: exactamente cinco `<path>` con `fill`, ninguno con `stroke`, en orden
+ * de pintado. `parseQrSvg()` de `lib/pdf/qrSheet.tsx` depende de esa forma, así
+ * que no se puede meter aquí un `<rect>` ni un `<circle>` por comodidad —el PDF
+ * dejaría de ver esa capa y la página saldría a medias, sin avisar—.
  */
-function renderQrSvg(code: string): Promise<string> {
-  return QRCode.toString(formUrlFor(code), { type: "svg", ...QR_OPTIONS });
+function renderQrSvg(code: string): string {
+  const { modules } = QRCode.create(formUrlFor(code), QR_OPTIONS);
+  const { size, data } = modules;
+  const { quietZone, background, dots, finder, frame } = QR_STYLE;
+
+  // El origen se desplaza para que el viewBox empiece en 0.
+  const ringInset = quietZone + frame.gap;
+  const offset = ringInset + FRAME_BLEED;
+  const side = size + 2 * offset;
+
+  // Las tres esquinas 7×7 se dibujan aparte, así que los módulos las saltan.
+  const finders = [
+    [0, 0],
+    [0, size - 7],
+    [size - 7, 0],
+  ] as const;
+  const isFinder = (row: number, col: number) =>
+    finders.some(([r, c]) => row >= r && row < r + 7 && col >= c && col < c + 7);
+
+  let modulesPath = "";
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      if (!data[row * size + col] || isFinder(row, col)) continue;
+      modulesPath += circlePath(offset + col + 0.5, offset + row + 0.5, dots.diameter / 2);
+    }
+  }
+
+  // Polaridad invertida (D38): lo que en un QR normal es módulo oscuro aquí es
+  // tinta clara. La ESTRUCTURA del patrón se respeta entera —anillo 7×7 de
+  // tinta, hueco 5×5 de fondo, ojo 3×3 de tinta—, que es lo que lee el escáner.
+  let ringsPath = "";
+  let eyesPath = "";
+  for (const [row, col] of finders) {
+    const x = offset + col;
+    const y = offset + row;
+    ringsPath += roundedSquarePath(x, y, 7, finder.corner * 7);
+    ringsPath += reversedRoundedSquarePath(x + 1, y + 1, 5, finder.corner * 5);
+    eyesPath += roundedSquarePath(x + 2, y + 2, 3, finder.corner * 3);
+  }
+
+  // El marco va POR FUERA de la zona de silencio, nunca pegado a los módulos:
+  // invadirla es la forma habitual de romper un QR decorado.
+  const ringSide = size + 2 * ringInset;
+  const ringCorner = background.corner * ringSide;
+  const perimeter = 4 * (ringSide - 2 * ringCorner) + 2 * Math.PI * ringCorner;
+  const count = Math.max(4, Math.round(perimeter / frame.step));
+
+  let framePath = "";
+  for (let i = 0; i < count; i++) {
+    const [x, y] = roundedSquarePerimeterPoint(
+      FRAME_BLEED,
+      FRAME_BLEED,
+      ringSide,
+      ringCorner,
+      (i * perimeter) / count,
+    );
+    framePath += circlePath(x, y, frame.diameter / 2);
+  }
+
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${fixed(side)} ${fixed(side)}">` +
+    `<path fill="${background.color}" d="${roundedSquarePath(0, 0, side, background.corner * side)}"/>` +
+    `<path fill="${dots.color}" d="${modulesPath}"/>` +
+    `<path fill="${finder.outer}" d="${ringsPath}"/>` +
+    `<path fill="${finder.eye}" d="${eyesPath}"/>` +
+    `<path fill="${frame.color}" d="${framePath}"/>` +
+    `</svg>`
+  );
 }
 
 /**
@@ -93,22 +177,23 @@ export type QrStatus = "ok" | "stale" | "missing" | "unverifiable";
 /**
  * ¿El SVG guardado codifica la URL que le tocaría hoy?
  *
- * No se decodifica el QR. `QRCode.toString()` es determinista —mismas opciones y
- * misma URL producen el mismo SVG carácter por carácter—, así que basta con
- * volver a generarlo y comparar. Eso no permite saber QUÉ URL codifica un SVG
- * cualquiera, pero sí responder la única pregunta que importa antes de imprimir:
- * si codifica la que debe.
+ * No se decodifica el QR. `renderQrSvg()` es determinista —misma URL, mismo
+ * estilo y mismas opciones producen el mismo SVG carácter por carácter, con el
+ * redondeo fijo de `fixed()` cerrando la única fuente de deriva—, así que basta
+ * con volver a generarlo y comparar. Eso no permite saber QUÉ URL codifica un
+ * SVG cualquiera, pero sí responder la única pregunta que importa antes de
+ * imprimir: si codifica la que debe.
  *
  * Se comprueba el artefacto real y no un campo en la base. Un campo diría lo que
  * creímos haber generado; los bytes dicen lo que hay.
  *
- * ADVERTENCIA: la comparación también falla si cambian `QR_OPTIONS` o si la
- * librería altera su formato de salida. En ese caso TODOS los QR se marcarían
- * como caducados. Es un falso positivo, y es la dirección correcta del error:
- * avisa de más, nunca de menos.
+ * ADVERTENCIA: la comparación también falla si cambian `QR_OPTIONS`, si cambia
+ * `QR_STYLE` o si la librería altera la matriz. En ese caso TODOS los QR se
+ * marcarían como caducados. Es un falso positivo, y es la dirección correcta
+ * del error: avisa de más, nunca de menos. Pasó al aplicar D38.
  */
 export async function qrMatchesCurrentSite(storedSvg: string, code: string): Promise<boolean> {
-  return storedSvg === (await renderQrSvg(code));
+  return storedSvg === renderQrSvg(code);
 }
 
 /** Estado del QR de un punto, descargando su SVG del bucket. */
@@ -150,7 +235,7 @@ export async function generateQr(
   let path: string;
 
   try {
-    svg = await renderQrSvg(code);
+    svg = renderQrSvg(code);
     path = qrObjectPath(capturePointId);
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "No se pudo generar el QR." };
