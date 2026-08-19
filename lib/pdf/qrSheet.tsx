@@ -13,7 +13,7 @@ import {
 
 import { createAdminClient } from "../db/admin";
 import type { CapturePointRow } from "../db/capturePoints";
-import { formUrlFor, isProvisionalDomain, qrMatchesCurrentSite } from "../qr";
+import { isProvisionalDomain, qrMatchesCurrentSite } from "../qr";
 
 /**
  * Un `path` del SVG del QR. El generador produce exactamente dos: el fondo
@@ -61,13 +61,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     fontFamily: "Helvetica",
   },
-  business: { fontSize: 13, color: "#6b7280", marginBottom: 28 },
   // 142 pt = 50 mm exactos: el tamaño de la etiqueta de vinilo (D38). No es
   // decorativo, es la medida física a la que se imprime y se corta.
-  qrBox: { width: 142, height: 142, marginBottom: 28 },
-  label: { fontSize: 30, fontFamily: "Helvetica-Bold", color: "#1f2937", marginBottom: 8 },
-  code: { fontSize: 17, fontFamily: "Courier", color: "#1f2937", letterSpacing: 2 },
-  url: { position: "absolute", bottom: 36, fontSize: 9, color: "#6b7280" },
+  // Sin marginBottom: ya no hay nada debajo, y la página centra el QR sola.
+  qrBox: { width: 142, height: 142 },
   warning: {
     position: "absolute",
     top: 28,
@@ -84,14 +81,10 @@ const styles = StyleSheet.create({
 });
 
 function QrPage({
-  businessName,
-  point,
   art,
   provisional,
   stale,
 }: {
-  businessName: string;
-  point: CapturePointRow;
   art: QrArt;
   provisional: boolean;
   stale: boolean;
@@ -110,8 +103,9 @@ function QrPage({
         provisional && <Text style={styles.warning}>QR DE PRUEBA · NO IMPRIMIR</Text>
       )}
 
-      <Text style={styles.business}>{businessName}</Text>
-
+      {/* La página es el producto: solo el QR a 50 mm, para imprimir y cortar
+          sin retoques. Cualquier texto aquí es algo que habría que recortar
+          después, y el operador ya sabe de qué negocio es el PDF que descargó. */}
       <View style={styles.qrBox}>
         <Svg viewBox={art.viewBox} width="100%" height="100%">
           {art.paths.map((p, i) => (
@@ -125,13 +119,6 @@ function QrPage({
           ))}
         </Svg>
       </View>
-
-      <Text style={styles.label}>{point.label}</Text>
-      {/* El código también en texto: si el QR se raya o se ensucia, alguien
-          puede teclear la URL a mano. Para eso es corto y sin ambigüedades. */}
-      <Text style={styles.code}>{point.code}</Text>
-
-      <Text style={styles.url}>{formUrlFor(point.code).replace(/^https?:\/\//, "")}</Text>
     </Page>
   );
 }
@@ -198,8 +185,6 @@ export async function buildQrSheet(
       {pages.map(({ point, art, stale }) => (
         <QrPage
           key={point.id}
-          businessName={businessName}
-          point={point}
           art={art}
           provisional={provisional}
           stale={stale}
