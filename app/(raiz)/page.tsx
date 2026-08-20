@@ -428,7 +428,7 @@ export default function Page() {
                 </div>
                 <div className="qv-row">
                   <span>Expositor de metacrilato con QR + NFC, por punto</span>
-                  <span>40 €</span>
+                  <span>30 €</span>
                 </div>
                 <div className="qv-row">
                   <span>Pegatina de vinilo con QR + NFC, por punto</span>
