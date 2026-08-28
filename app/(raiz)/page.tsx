@@ -61,9 +61,10 @@ const css = `
 
 .qv-demo{ background:#fff; border:1px solid var(--line); border-radius:1.25rem;
   padding:clamp(1.5rem,4vw,2.25rem); box-shadow:0 30px 60px -40px rgba(14,42,34,.4); }
-.qv-demolabel{ font-size:.7rem; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
-  color:var(--stone); text-align:center; margin-bottom:.5rem; }
-.qv-demoq{ font-family:var(--serif); font-size:1.4rem; text-align:center; margin-bottom:1.5rem; }
+.qv-demolabel{ font-size:.8rem; font-weight:700; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--brass); text-align:center; margin-bottom:.9rem; }
+.qv-demoq{ font-family:var(--serif); font-size:1.5rem; text-align:center;
+  margin-bottom:2.25rem; line-height:1.25; }
 @keyframes qvrise{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:translateY(0); } }
 
 .qv-qr{ display:flex; justify-content:center; margin-top:.5rem; }
