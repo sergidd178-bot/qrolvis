@@ -288,55 +288,46 @@ export default function Page() {
               </p>
             </div>
 
-            <div className="qv-demo qv-stagger qv-d3">
-              <p className="qv-demolabel">Esto es lo que ve tu cliente</p>
-              <p className="qv-demoq">¿Cómo ha ido tu visita?</p>
+           <div className="qv-demo qv-stagger qv-d3">
+  <p className="qv-demolabel">Pruébalo tú mismo</p>
+  <p className="qv-demoq">Escanea y verás lo que ve tu cliente</p>
 
-              <div className="qv-faces" role="group" aria-label="Puntúa del 1 al 5 para probar la demostración">
-                {CARAS.map((c) => (
-                  <button
-                    key={c.score}
-                    className="qv-face"
-                    type="button"
-                    aria-pressed={score === c.score}
-                    onClick={() => setScore(c.score)}
-                  >
-                    <Cara d={c.d} />
-                    <span>{c.score}</span>
-                  </button>
-                ))}
-              </div>
+  <div className="qv-qr">
+    <img
+      src="/qr-demo.svg"
+      alt="Código QR que abre el formulario de demostración de Qrolvis"
+      width={224}
+      height={224}
+    />
+  </div>
 
-              <div className="qv-out" aria-live="polite">
-                {score === null && (
-                  <p className="qv-idle">Pulsa una carita y verás qué pasa en tu negocio.</p>
-                )}
+  <p className="qv-qrhelp">¿Lo estás leyendo desde el móvil? Ábrelo aquí:</p>
+  
+    className="qv-qrlink"
+    href="https://www.qrolvis.com/f/865ZGWBQ"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    www.qrolvis.com/f/865ZGWBQ
+  </a>
 
-                {score !== null && score <= 2 && (
-                  <div className="qv-card qv-alert">
-                    <p className="qv-tag">Email a tu móvil, al momento</p>
-                    <p className="qv-ctitle">Valoración baja en tu negocio</p>
-                    <p className="qv-cbody">
-                      Recibes un aviso con la puntuación de <strong>{score} sobre 5</strong>, el comentario
-                      íntegro y el punto del local. Todavía puedes hablar con esa persona antes de que se vaya.
-                    </p>
-                  </div>
-                )}
+  <p className="qv-qrnote">
+    Es el formulario real, el mismo que estaría en tu barra o tu mostrador. Puntúa lo que quieras:
+    esto es una demostración y no se publica nada en ningún sitio.
+  </p>
 
-                {score !== null && (
-                  <div className="qv-card qv-google">
-                    <p className="qv-tag">Pantalla final</p>
-                    <p className="qv-ctitle">Se le invita a reseñarte en Google</p>
-                    <p className="qv-cbody">
-                      El enlace se muestra <strong>a todos</strong>, hayan puntuado 1 o 5. Filtrar quién lo ve
-                      va contra las normas de Google y podría costarte la ficha.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
+  <div className="qv-warn">
+    <div className="qv-warnbox">
+      <p className="qv-warntag">Pruébalo: puntúa 1 o 2</p>
+      <p className="qv-warntitle">Ahí es cuando salta el aviso</p>
+      <p className="qv-warnbody">
+        Con una valoración de <strong>2 o menos</strong> te llega un email al instante con la
+        puntuación, el comentario íntegro y el punto del local donde ha pasado. Lo lees de pie, en
+        diez segundos, y todavía estás a tiempo de hablar con esa persona antes de que se vaya.
+      </p>
+    </div>
+  </div>
+</div>
 
         {/* Cómo funciona */}
         <section className="qv-sec">
