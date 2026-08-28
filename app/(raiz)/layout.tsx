@@ -58,7 +58,7 @@ const negocio = {
     addressCountry: 'ES',
   },
   areaServed: { '@type': 'City', name: 'Girona' },
-  priceRange: '25 € - 60 €',
+  priceRange: '35 € - 60 €',
   inLanguage: ['es', 'ca'],
 };
 
