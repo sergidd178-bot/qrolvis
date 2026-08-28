@@ -1,11 +1,39 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://qrolvis.com'),
+  metadataBase: new URL("https://qrolvis.com"),
   title: {
-    default: 'Qrolvis · Más reseñas en Google para tu negocio de Girona',
-    template: '%s · Qrolvis',
+    default: "Qrolvis · Más reseñas en Google para tu negocio de Girona",
+    template: "%s · Qrolvis",
   },
+  description:
+    "Tus clientes valoran su visita en 20 segundos con un QR en tu local, se les invita a reseñarte en Google y recibes un aviso inmediato si alguien se va descontento. Servicio local en Girona para hostelería y estética. Desde 35 €/mes.",
+  authors: [{ name: "Sergi de Domingo i Rosas" }],
+  keywords: [
+    "reseñas Google Girona",
+    "opiniones clientes QR",
+    "encuestas satisfacción bar",
+    "reseñas peluquería Girona",
+    "código QR valoraciones",
+  ],
+  robots: { index: true, follow: true },
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "es_ES",
+    siteName: "Qrolvis",
+    url: "/",
+    title: "Qrolvis · Más reseñas en Google, y avisos antes de que sea tarde",
+    description:
+      "Tus clientes contentos no dejan reseña. Los enfadados, sí. Qrolvis le da la vuelta, en Girona.",
+  },
+  twitter: {
+    card: "summary",
+    title: "Qrolvis · Más reseñas en Google, y avisos antes de que sea tarde",
+    description:
+      "Tus clientes contentos no dejan reseña. Los enfadados, sí. Qrolvis le da la vuelta, en Girona.",
+  },
+};
   description:
     'Tus clientes valoran su visita en 20 segundos con un QR en tu local, se les invita a reseñarte en Google y recibes un aviso inmediato si alguien se va descontento. Servicio local en Girona para hostelería y estética. Desde 35 €/mes.',
   keywords: [
