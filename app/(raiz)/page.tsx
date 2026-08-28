@@ -67,7 +67,7 @@ const css = `
   margin-bottom:2.25rem; line-height:1.25; }
 @keyframes qvrise{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:translateY(0); } }
 
-.qv-qr{ display:flex; justify-content:center; margin-top:.5rem; }
+.qv-qr{ display:flex; justify-content:center; }
 .qv-qr img{ width:min(14rem,68%); height:auto; display:block; }
 .qv-qrhelp{ text-align:center; font-size:.85rem; color:var(--stone); margin-top:1.5rem; }
 .qv-qrlink{ display:block; width:fit-content; margin:.4rem auto 0; text-align:center;
