@@ -61,32 +61,29 @@ const css = `
 
 .qv-demo{ background:#fff; border:1px solid var(--line); border-radius:1.25rem;
   padding:clamp(1.5rem,4vw,2.25rem); box-shadow:0 30px 60px -40px rgba(14,42,34,.4); }
-.qv-demolabel{ font-size:.7rem; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
-  color:var(--stone); text-align:center; margin-bottom:1.5rem; }
-.qv-demoq{ font-family:var(--serif); font-size:1.4rem; text-align:center; margin-bottom:1.5rem; }
-.qv-faces{ display:flex; justify-content:center; gap:clamp(.35rem,2vw,.85rem); }
-.qv-face{ flex:1; max-width:4.25rem; background:transparent; border:1px solid var(--line);
-  border-radius:.9rem; padding:.7rem .25rem .55rem; cursor:pointer; font-family:var(--sans);
-  display:flex; flex-direction:column; align-items:center; gap:.3rem;
-  transition:transform .2s var(--ease), border-color .2s var(--ease), background-color .2s var(--ease); }
-.qv-face:hover{ transform:translateY(-4px); border-color:var(--moss); }
-.qv-face[aria-pressed="true"]{ background:var(--veil); border-color:var(--moss); transform:translateY(-4px); }
-.qv-face svg{ width:2rem; height:2rem; display:block; }
-.qv-face span{ font-size:.7rem; color:var(--stone); font-weight:600; }
-
-.qv-out{ margin-top:1.5rem; min-height:11.5rem; }
-.qv-card{ border-radius:.9rem; padding:1.15rem 1.25rem; animation:qvrise .45s var(--ease) both; }
+.qv-demolabel{ font-size:.8rem; font-weight:700; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--brass); text-align:center; margin-bottom:.9rem; }
+.qv-demoq{ font-family:var(--serif); font-size:1.5rem; text-align:center;
+  margin-bottom:2.25rem; line-height:1.25; }
 @keyframes qvrise{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:translateY(0); } }
-.qv-card + .qv-card{ margin-top:.75rem; }
-.qv-alert{ background:#FDF6EC; border:1px solid #EBD9BC; }
-.qv-google{ background:var(--veil); border:1px solid var(--line); }
-.qv-tag{ font-size:.68rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--brass); margin-bottom:.6rem; }
-.qv-google .qv-tag{ color:var(--moss); }
-.qv-ctitle{ font-weight:700; font-size:.95rem; margin-bottom:.35rem; }
-.qv-cbody{ font-size:.875rem; color:var(--stone); line-height:1.5; }
-.qv-cbody strong{ color:var(--ink); font-weight:600; }
-.qv-idle{ font-size:.9rem; color:var(--stone); text-align:center; padding-top:2.75rem; }
+
+.qv-qr{ display:flex; justify-content:center; }
+.qv-qr img{ width:min(14rem,68%); height:auto; display:block; }
+.qv-qrhelp{ text-align:center; font-size:.85rem; color:var(--stone); margin-top:2.25rem; }
+.qv-qrlink{ display:block; width:fit-content; margin:.65rem auto 0; text-align:center;
+  font-weight:600; font-size:.95rem; color:var(--moss); text-decoration:none;
+  border-bottom:1.5px solid rgba(15,92,74,.35); padding-bottom:.15rem;
+  transition:border-color .2s var(--ease); word-break:break-all; }
+.qv-qrlink:hover{ border-bottom-color:var(--moss); }
+.qv-qrnote{ text-align:center; font-size:.8rem; color:var(--stone); line-height:1.6;
+  margin-top:1.75rem; max-width:26rem; margin-inline:auto; }
+.qv-warn{ margin-top:2rem; padding-top:2rem; border-top:1px solid var(--line); }
+.qv-warnbox{ background:#FDF6EC; border:1px solid #EBD9BC; border-radius:.9rem; padding:1.1rem 1.25rem; }
+.qv-warntag{ font-size:.68rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--brass); margin-bottom:.55rem; }
+.qv-warntitle{ font-weight:700; font-size:.95rem; margin-bottom:.35rem; }
+.qv-warnbody{ font-size:.85rem; color:var(--stone); line-height:1.5; }
+.qv-warnbody strong{ color:var(--ink); font-weight:600; }
 
 .qv-sec{ padding-block:var(--gap); }
 .qv-veil{ background:var(--veil); }
@@ -172,30 +169,9 @@ const css = `
 `;
 
 const WA = 'https://wa.me/34679702934';
-
-type Cara = { score: number; d: string };
-
-const CARAS: Cara[] = [
-  { score: 1, d: 'M11 22c1.4-2.2 3-3.2 5-3.2s3.6 1 5 3.2' },
-  { score: 2, d: 'M11.5 21.2c1.3-1.3 2.8-2 4.5-2s3.2.7 4.5 2' },
-  { score: 3, d: 'M11.5 20.5h9' },
-  { score: 4, d: 'M11.5 19.5c1.3 1.4 2.8 2.1 4.5 2.1s3.2-.7 4.5-2.1' },
-  { score: 5, d: 'M10.5 18.5c1.6 2.4 3.4 3.6 5.5 3.6s3.9-1.2 5.5-3.6' },
-];
-
-function Cara({ d }: { d: string }) {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="#0E2A22" strokeWidth="1.6" strokeLinecap="round">
-      <circle cx="16" cy="16" r="12.5" />
-      <circle cx="11.5" cy="13" r="0.8" fill="#0E2A22" />
-      <circle cx="20.5" cy="13" r="0.8" fill="#0E2A22" />
-      <path d={d} />
-    </svg>
-  );
-}
+const DEMO = 'https://www.qrolvis.com/f/865ZGWBQ';
 
 export default function Page() {
-  const [score, setScore] = useState<number | null>(null);
   const [stuck, setStuck] = useState(false);
   const root = useRef<HTMLDivElement>(null);
 
@@ -273,50 +249,39 @@ export default function Page() {
             </div>
 
             <div className="qv-demo qv-stagger qv-d3">
-              <p className="qv-demolabel">Esto es lo que ve tu cliente</p>
-              <p className="qv-demoq">¿Cómo ha ido tu visita?</p>
+              <p className="qv-demolabel">Pruébalo tú mismo</p>
+              <p className="qv-demoq">Escanea y verás lo que ve tu cliente</p>
 
-              <div className="qv-faces" role="group" aria-label="Puntúa del 1 al 5 para probar la demostración">
-                {CARAS.map((c) => (
-                  <button
-                    key={c.score}
-                    className="qv-face"
-                    type="button"
-                    aria-pressed={score === c.score}
-                    onClick={() => setScore(c.score)}
-                  >
-                    <Cara d={c.d} />
-                    <span>{c.score}</span>
-                  </button>
-                ))}
+              <div className="qv-qr">
+                <img
+                  src="/qr-demo.svg"
+                  alt="Código QR que abre el formulario de demostración de Qrolvis"
+                  width={224}
+                  height={224}
+                />
               </div>
 
-              <div className="qv-out" aria-live="polite">
-                {score === null && (
-                  <p className="qv-idle">Pulsa una carita y verás qué pasa en tu negocio.</p>
-                )}
+              <p className="qv-qrhelp">¿Lo estás leyendo desde el móvil? Ábrelo aquí:</p>
+              <a className="qv-qrlink" href={DEMO} target="_blank" rel="noopener noreferrer">
+                www.qrolvis.com/f/865ZGWBQ
+              </a>
 
-                {score !== null && score <= 2 && (
-                  <div className="qv-card qv-alert">
-                    <p className="qv-tag">Email a tu móvil, al momento</p>
-                    <p className="qv-ctitle">Valoración baja en tu negocio</p>
-                    <p className="qv-cbody">
-                      Recibes un aviso con la puntuación de <strong>{score} sobre 5</strong>, el comentario
-                      íntegro y el punto del local. Todavía puedes hablar con esa persona antes de que se vaya.
-                    </p>
-                  </div>
-                )}
+              <p className="qv-qrnote">
+                Es el formulario real, el mismo que estaría en tu barra o tu mostrador. Puntúa lo que
+                quieras: esto es una demostración y no se publica nada en ningún sitio.
+              </p>
 
-                {score !== null && (
-                  <div className="qv-card qv-google">
-                    <p className="qv-tag">Pantalla final</p>
-                    <p className="qv-ctitle">Se le invita a reseñarte en Google</p>
-                    <p className="qv-cbody">
-                      El enlace se muestra <strong>a todos</strong>, hayan puntuado 1 o 5. Filtrar quién lo ve
-                      va contra las normas de Google y podría costarte la ficha.
-                    </p>
-                  </div>
-                )}
+              <div className="qv-warn">
+                <div className="qv-warnbox">
+                  <p className="qv-warntag">Pruébalo: puntúa 1 o 2</p>
+                  <p className="qv-warntitle">Ahí es cuando salta el aviso</p>
+                  <p className="qv-warnbody">
+                    Con una valoración de <strong>2 o menos</strong> te llega un email al instante con
+                    la puntuación, el comentario íntegro y el punto del local donde ha pasado. Lo lees
+                    de pie, en diez segundos, y todavía estás a tiempo de hablar con esa persona antes
+                    de que se vaya.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
