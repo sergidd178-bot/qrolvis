@@ -86,7 +86,23 @@ const css = `
 .qv-ctitle{ font-weight:700; font-size:.95rem; margin-bottom:.35rem; }
 .qv-cbody{ font-size:.875rem; color:var(--stone); line-height:1.5; }
 .qv-cbody strong{ color:var(--ink); font-weight:600; }
-.qv-idle{ font-size:.9rem; color:var(--stone); text-align:center; padding-top:2.75rem; }
+.qv-idle{ font-size:.9rem; color:var(--stone); text-align:center; padding-top:2.75rem; } .qv-qr{ display:flex; justify-content:center; margin-top:.5rem; }
+.qv-qr img{ width:min(14rem,68%); height:auto; display:block; }
+.qv-qrhelp{ text-align:center; font-size:.85rem; color:var(--stone); margin-top:1.5rem; }
+.qv-qrlink{ display:block; width:fit-content; margin:.4rem auto 0; text-align:center;
+  font-weight:600; font-size:.95rem; color:var(--moss); text-decoration:none;
+  border-bottom:1.5px solid rgba(15,92,74,.35); padding-bottom:.15rem;
+  transition:border-color .2s var(--ease); word-break:break-all; }
+.qv-qrlink:hover{ border-bottom-color:var(--moss); }
+.qv-qrnote{ text-align:center; font-size:.8rem; color:var(--stone); line-height:1.5;
+  margin-top:1.25rem; }
+.qv-warn{ margin-top:1.5rem; padding-top:1.5rem; border-top:1px solid var(--line); }
+.qv-warnbox{ background:#FDF6EC; border:1px solid #EBD9BC; border-radius:.9rem; padding:1.1rem 1.25rem; }
+.qv-warntag{ font-size:.68rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--brass); margin-bottom:.55rem; }
+.qv-warntitle{ font-weight:700; font-size:.95rem; margin-bottom:.35rem; }
+.qv-warnbody{ font-size:.85rem; color:var(--stone); line-height:1.5; }
+.qv-warnbody strong{ color:var(--ink); font-weight:600; }
 
 .qv-sec{ padding-block:var(--gap); }
 .qv-veil{ background:var(--veil); }
