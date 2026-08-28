@@ -1,8 +1,21 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Aviso legal · Qrolvis',
-  description: 'Aviso legal de Qrolvis, servicio de recogida de opiniones mediante QR y NFC en Girona.',
+  title: "Aviso legal",
+  description:
+    "Aviso legal de Qrolvis: titularidad del sitio, condiciones de uso y datos identificativos.",
+  alternates: { canonical: "/aviso-legal" },
+  openGraph: {
+    url: "/aviso-legal",
+    title: "Aviso legal · Qrolvis",
+    description:
+      "Aviso legal de Qrolvis: titularidad del sitio, condiciones de uso y datos identificativos.",
+  },
+  twitter: {
+    title: "Aviso legal · Qrolvis",
+    description:
+      "Aviso legal de Qrolvis: titularidad del sitio, condiciones de uso y datos identificativos.",
+  },
 };
 
 const css = `

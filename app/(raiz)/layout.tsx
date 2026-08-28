@@ -17,13 +17,19 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: 'Sergi de Domingo i Rosas' }],
   alternates: {
-    canonical: 'https://qrolvis.com',
+    canonical: '/',
   },
   openGraph: {
     type: 'website',
-    url: 'https://qrolvis.com',
+    url: '/',
     siteName: 'Qrolvis',
     locale: 'es_ES',
+    title: 'Qrolvis · Más reseñas en Google, y avisos antes de que sea tarde',
+    description:
+      'Tus clientes contentos no dejan reseña. Los enfadados, sí. Qrolvis le da la vuelta, en Girona.',
+  },
+  twitter: {
+    card: 'summary',
     title: 'Qrolvis · Más reseñas en Google, y avisos antes de que sea tarde',
     description:
       'Tus clientes contentos no dejan reseña. Los enfadados, sí. Qrolvis le da la vuelta, en Girona.',
@@ -52,7 +58,7 @@ const negocio = {
     addressCountry: 'ES',
   },
   areaServed: { '@type': 'City', name: 'Girona' },
-  priceRange: '25 € - 60 €',
+  priceRange: '35 € - 60 €',
   inLanguage: ['es', 'ca'],
 };
 

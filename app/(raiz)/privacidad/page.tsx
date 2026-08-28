@@ -1,8 +1,21 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Política de privacidad · Qrolvis',
-  description: 'Política de privacidad de Qrolvis: qué datos se tratan, con qué finalidad y cómo ejercer tus derechos.',
+  title: "Política de privacidad",
+  description:
+    "Política de privacidad de Qrolvis: qué datos se tratan, con qué finalidad y cómo ejercer tus derechos.",
+  alternates: { canonical: "/privacidad" },
+  openGraph: {
+    url: "/privacidad",
+    title: "Política de privacidad · Qrolvis",
+    description:
+      "Política de privacidad de Qrolvis: qué datos se tratan, con qué finalidad y cómo ejercer tus derechos.",
+  },
+  twitter: {
+    title: "Política de privacidad · Qrolvis",
+    description:
+      "Política de privacidad de Qrolvis: qué datos se tratan, con qué finalidad y cómo ejercer tus derechos.",
+  },
 };
 
 const css = `
