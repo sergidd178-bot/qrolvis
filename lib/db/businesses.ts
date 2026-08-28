@@ -27,6 +27,21 @@ export type FieldErrors = Partial<Record<keyof BusinessInput, string>>;
 const GOOGLE_WRITEREVIEW = /^https:\/\/search\.google\.com\/local\/writereview\?placeid=[A-Za-z0-9_-]+$/;
 const GOOGLE_SHORT_REVIEW = /^https:\/\/g\.page\/r\/[A-Za-z0-9_-]+\/review$/;
 
+/**
+ * Excepción para el negocio de demostración de la portada.
+ *
+ * El QR de qrolvis.com apunta a un punto de captación real, y quien lo escanea
+ * llega a la pantalla 3 igual que un cliente de un bar. Si ese negocio no
+ * tuviera enlace, la pantalla saldría sin botón (docs/03, casos límite) y la
+ * demostración perdería justo el paso que más vende. Apuntarlo a la ficha de un
+ * negocio real le mandaría reseñas de gente que nunca ha estado allí.
+ *
+ * La solución es una página interna que explica qué habría ahí. El patrón es
+ * estrecho a propósito: solo rutas bajo /demo/ del propio dominio, para que
+ * esta puerta no sirva para colar una URL cualquiera en un cliente de pago.
+ */
+const QROLVIS_DEMO = /^https:\/\/qrolvis\.com\/demo\/[A-Za-z0-9/_-]+$/;
+
 // Comprobación de forma, no de existencia: que haya algo, una arroba, algo, un
 // punto y algo. Verificar que el buzón existe requeriría enviarle un correo.
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -55,7 +70,12 @@ export function validateBusiness(input: BusinessInput, sectorIds: number[]): Fie
   }
 
   const url = input.googleReviewUrl.trim();
-  if (url && !GOOGLE_WRITEREVIEW.test(url) && !GOOGLE_SHORT_REVIEW.test(url)) {
+  if (
+    url &&
+    !GOOGLE_WRITEREVIEW.test(url) &&
+    !GOOGLE_SHORT_REVIEW.test(url) &&
+    !QROLVIS_DEMO.test(url)
+  ) {
     errors.googleReviewUrl =
       "Ese enlace no abre el cuadro de reseña. Una URL de Maps o de búsqueda lleva a la ficha del negocio y la reseña se pierde sin dar ningún error. Usa https://search.google.com/local/writereview?placeid=… o el enlace corto de Google Business Profile terminado en /review. Déjalo vacío si aún no lo tienes.";
   }
